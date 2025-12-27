@@ -156,7 +156,7 @@ export class YunhuBot extends Bot<Context, Config>
       if (botInfo.code === 1)
       {
         this.user.name = botInfo.data.bot.nickname;
-        this.user.avatar = await getImageAsBase64(botInfo.data.bot.avatarUrl, this.http);
+        this.user.avatar = await getImageAsBase64(botInfo.data.bot.avatarUrl, this);
         this.selfId = botInfo.data.bot.botId;
       }
       await super.start();

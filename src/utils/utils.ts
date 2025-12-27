@@ -255,7 +255,7 @@ export async function adaptSession(bot: YunhuBot, input: Yunhu.YunhuEvent)
             try
             {
               const imageUrl = bot.config.resourceEndpoint + message.content.parentImgName;
-              const base64 = await getImageAsBase64(imageUrl, bot.http);
+              const base64 = await getImageAsBase64(imageUrl, bot);
               const imageElement = h.image(base64);
               quote.content = imageElement.toString();
               quote.elements = [imageElement];
@@ -374,11 +374,18 @@ export async function adaptSession(bot: YunhuBot, input: Yunhu.YunhuEvent)
  * @param botHttp Bot HTTP 实例
  * @returns Base64 格式的图片
  */
-export async function getImageAsBase64(url: string, botHttp: { file: (url: string, config?: any) => Promise<{ data: ArrayBuffer; filename: string; type: string; }>; }): Promise<string>
+export async function getImageAsBase64(url: string, bot: { ctx: Context; }): Promise<string>
 {
   try
   {
-    const { data, type } = await botHttp.file(url);
+    // 设置请求头，包括Referer
+    const httpClient = bot.ctx.http.extend({
+      headers: {
+        'referer': 'https://yhfx.jwznb.com/',
+        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      }
+    });
+    const { data, type } = await httpClient.file(url);
 
     if (!type || !type.startsWith('image/'))
     {

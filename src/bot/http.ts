@@ -125,9 +125,9 @@ export class BotHttp
     const fileConfig: HTTP.RequestConfig = {
       ...config,
       headers: {
-        'Referer': 'www.yhchat.com',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        ...config?.headers
+        ...config?.headers,
+        'referer': 'https://yhfx.jwznb.com/',
+        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
       }
     };
 
