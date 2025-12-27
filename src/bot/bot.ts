@@ -5,6 +5,7 @@ import { BotTableItem, Config } from '../config';
 import { YunhuMessageEncoder } from './message';
 import { fragmentToPayload } from './message';
 import { Internal } from './internal';
+import { BotHttp } from './http';
 
 const logger = new Logger('adapter-yunhupro');
 
@@ -13,6 +14,7 @@ export class YunhuBot extends Bot<Context, Config>
   static inject = ['server'];
   static MessageEncoder = YunhuMessageEncoder;
   public internal: Internal;
+  public http: BotHttp;
   private Encoder: YunhuMessageEncoder;
   private isDisposing = false;
   public botConfig: BotTableItem;
@@ -24,18 +26,11 @@ export class YunhuBot extends Bot<Context, Config>
     this.selfId = botConfig.botId;
     this.botConfig = botConfig;
 
-    // 创建HTTP实例
-    const http = this.ctx.http.extend({
-      endpoint: this.config.endpoint,
-    });
-
-    // 爬虫/抓包接口
-    const httpWeb = this.ctx.http.extend({
-      endpoint: this.config.endpointweb,
-    });
+    // 创建Bot HTTP实例
+    this.http = new BotHttp(this, this.config.endpoint, this.config.endpointweb);
 
     // 初始化内部接口
-    this.internal = new Internal(http, httpWeb, botConfig.token, this.config.endpoint, this);
+    this.internal = new Internal(botConfig.token, this.config.endpoint, this);
     this.Encoder = new YunhuMessageEncoder(this, botConfig.token);
   }
 
@@ -161,7 +156,7 @@ export class YunhuBot extends Bot<Context, Config>
       if (botInfo.code === 1)
       {
         this.user.name = botInfo.data.bot.nickname;
-        this.user.avatar = await getImageAsBase64(botInfo.data.bot.avatarUrl, this.ctx.http);
+        this.user.avatar = await getImageAsBase64(botInfo.data.bot.avatarUrl, this.http);
         this.selfId = botInfo.data.bot.botId;
       }
       await super.start();

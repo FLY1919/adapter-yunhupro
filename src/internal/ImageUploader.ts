@@ -1,5 +1,3 @@
-import { HTTP, Dict } from 'koishi';
-
 import { createHash } from 'node:crypto';
 
 import { BaseUploader } from './BaseUploader';
@@ -9,10 +7,9 @@ import { SizeLimitError } from '../utils/types';
 // 图片上传器
 export class ImageUploader extends BaseUploader
 {
-  constructor(http: HTTP, token: string, apiendpoint: string, bot: YunhuBot)
+  constructor(token: string, apiendpoint: string, bot: YunhuBot)
   {
-    super(http, token, apiendpoint,
-      'image', bot);
+    super(token, apiendpoint, 'image', bot);
   }
 
   async upload(url: string): Promise<string>
@@ -33,7 +30,7 @@ export class ImageUploader extends BaseUploader
     {
       this.bot.logInfo(url);
     }
-    const { data, filename: originalFilename, type: mimeType } = await this.http.file(url, { timeout: this.bot.config.uploadTimeout * 1000 });
+    const { data, filename: originalFilename, type: mimeType } = await this.bot.http.file(url, { timeout: this.bot.config.uploadTimeout * 1000 });
     const buffer = Buffer.from(data);
 
     // 记录检测到的MIME类型

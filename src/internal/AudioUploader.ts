@@ -1,4 +1,4 @@
-import { Context, HTTP } from 'koishi';
+import { Context } from 'koishi';
 
 import { } from 'koishi-plugin-ffmpeg';
 
@@ -14,10 +14,10 @@ import { SizeLimitError } from '../utils/types';
 // 音频上传器
 export class AudioUploader extends BaseUploader
 {
-  constructor(http: HTTP, token: string, apiendpoint: string, bot: YunhuBot)
+  constructor(token: string, apiendpoint: string, bot: YunhuBot)
   {
     // 最终上传的是视频文件
-    super(http, token, apiendpoint, 'video', bot);
+    super(token, apiendpoint, 'video', bot);
   }
 
   async upload(url: string): Promise<string>
@@ -37,7 +37,7 @@ export class AudioUploader extends BaseUploader
     {
       this.bot.logInfo(url);
     }
-    const { data, filename, type } = await this.http.file(url, { timeout: this.bot.config.uploadTimeout * 1000 });
+    const { data, filename, type } = await this.bot.http.file(url, { timeout: this.bot.config.uploadTimeout * 1000 });
     const audioBuffer = Buffer.from(data);
     const audioFilename = filename || 'audio.mp3';
 

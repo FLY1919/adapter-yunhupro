@@ -1,4 +1,4 @@
-import { h, Universal, HTTP, Context, Session } from 'koishi';
+import { h, Universal, Context, Session } from 'koishi';
 import { yunhuEmojiMap } from './emoji';
 import { YunhuBot } from '../bot/bot';
 import * as Yunhu from './types';
@@ -255,7 +255,7 @@ export async function adaptSession(bot: YunhuBot, input: Yunhu.YunhuEvent)
             try
             {
               const imageUrl = bot.config.resourceEndpoint + message.content.parentImgName;
-              const base64 = await getImageAsBase64(imageUrl, bot.ctx.http);
+              const base64 = await getImageAsBase64(imageUrl, bot.http);
               const imageElement = h.image(base64);
               quote.content = imageElement.toString();
               quote.elements = [imageElement];
@@ -371,21 +371,14 @@ export async function adaptSession(bot: YunhuBot, input: Yunhu.YunhuEvent)
 /**
  * 获取图片并转换为Base64
  * @param url 图片URL
- * @param http Koishi HTTP 实例
+ * @param botHttp Bot HTTP 实例
  * @returns Base64 格式的图片
  */
-export async function getImageAsBase64(url: string, http: HTTP): Promise<string>
+export async function getImageAsBase64(url: string, botHttp: { file: (url: string, config?: any) => Promise<{ data: ArrayBuffer; filename: string; type: string; }>; }): Promise<string>
 {
   try
   {
-    // 设置请求头，包括Referer
-    const httpClient = http.extend({
-      headers: {
-        'Referer': 'www.yhchat.com',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-      }
-    });
-    const { data, type } = await httpClient.file(url);
+    const { data, type } = await botHttp.file(url);
 
     if (!type || !type.startsWith('image/'))
     {

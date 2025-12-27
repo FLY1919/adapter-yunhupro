@@ -1,5 +1,3 @@
-import { HTTP } from 'koishi';
-
 import { ResourceType } from '../utils/utils';
 import { YunhuBot } from '../bot/bot';
 import { SizeLimitError } from '../utils/types';
@@ -10,7 +8,6 @@ export abstract class BaseUploader
   protected MAX_SIZE: number;
 
   constructor(
-    protected http: HTTP,
     protected token: string,
     protected apiendpoint: string,
     protected resourceType: ResourceType,
@@ -31,7 +28,7 @@ export abstract class BaseUploader
 
     try
     {
-      const res = await this.http.post(uploadUrl, form, { timeout: this.bot.config.uploadTimeout * 1000 });
+      const res = await this.bot.http.post(uploadUrl, form, { timeout: this.bot.config.uploadTimeout * 1000 });
 
       if (res.code !== 1)
       {
@@ -48,11 +45,6 @@ export abstract class BaseUploader
     } catch (error: any)
     {
       this.bot.loggerError(`${this.resourceType}上传请求失败:`, error.message);
-      if (HTTP.Error.is(error) && error.response)
-      {
-        this.bot.loggerError(`响应状态: ${error.response.status}`);
-        this.bot.loggerError(`响应体:`, error.response.data);
-      }
       throw new Error(`${this.resourceType}上传失败：${error.message}`);
     }
   }

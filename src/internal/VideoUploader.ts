@@ -1,5 +1,3 @@
-import { HTTP } from 'koishi';
-
 import { BaseUploader } from './BaseUploader';
 import { YunhuBot } from '../bot/bot';
 import { compressVideo } from '../utils/utils';
@@ -8,9 +6,9 @@ import { SizeLimitError } from '../utils/types';
 // 视频上传器
 export class VideoUploader extends BaseUploader
 {
-  constructor(http: HTTP, token: string, apiendpoint: string, bot: YunhuBot)
+  constructor(token: string, apiendpoint: string, bot: YunhuBot)
   {
-    super(http, token, apiendpoint, 'video', bot);
+    super(token, apiendpoint, 'video', bot);
   }
 
   async upload(url: string): Promise<string>
@@ -30,7 +28,7 @@ export class VideoUploader extends BaseUploader
     {
       this.bot.logInfo(url);
     }
-    const { data, filename, type } = await this.http.file(url, { timeout: this.bot.config.uploadTimeout * 1000 });
+    const { data, filename, type } = await this.bot.http.file(url, { timeout: this.bot.config.uploadTimeout * 1000 });
     const buffer = Buffer.from(data);
 
     // 记录原始大小

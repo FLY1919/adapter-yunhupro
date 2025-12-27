@@ -1,4 +1,4 @@
-import { HTTP, Dict, Universal } from 'koishi';
+import { Dict, Universal } from 'koishi';
 
 import { Readable } from 'node:stream';
 
@@ -20,23 +20,21 @@ export class Internal
   private bot: YunhuBot;
 
   constructor(
-    private http: HTTP,
-    private httpWeb: HTTP,
     private token: string,
     private apiendpoint: string,
     bot: YunhuBot
   )
   {
     this.bot = bot;
-    this.imageUploader = new ImageUploader(http, token, apiendpoint, bot);
-    this.videoUploader = new VideoUploader(http, token, apiendpoint, bot);
-    this.fileUploader = new FileUploader(http, token, apiendpoint, bot);
-    this.audioUploader = new AudioUploader(http, token, apiendpoint, bot);
+    this.imageUploader = new ImageUploader(token, apiendpoint, bot);
+    this.videoUploader = new VideoUploader(token, apiendpoint, bot);
+    this.fileUploader = new FileUploader(token, apiendpoint, bot);
+    this.audioUploader = new AudioUploader(token, apiendpoint, bot);
   }
 
   async sendMessage(payload: Dict): Promise<Types.YunhuResponse>
   {
-    return this.http.post(`/bot/send?token=${this.token}`, payload);
+    return this.bot.http.post(`/bot/send?token=${this.token}`, payload);
   }
 
   // 发送流式消息
@@ -112,7 +110,7 @@ export class Internal
       throw new Error('editMessage: content 内容不能为空');
     }
 
-    return this.http.post(`/bot/edit?token=${this.token}`, payload);
+    return this.bot.http.post(`/bot/edit?token=${this.token}`, payload);
   }
 
   // 获取图片的URL和key
@@ -174,21 +172,21 @@ export class Internal
       {
         const payload = { msgId: messageId, chatId: id, chatType };
         this.bot.logInfo(`批量撤回消息: ${JSON.stringify(payload)}`);
-        return this.http.post(`/bot/recall?token=${this.token}`, payload);
+        return this.bot.http.post(`/bot/recall?token=${this.token}`, payload);
       });
       return Promise.all(promises);
     } else
     {
       const payload = { msgId, chatId: id, chatType };
       this.bot.logInfo(`撤回消息: ${JSON.stringify(payload)}`);
-      return this.http.post(`/bot/recall?token=${this.token}`, payload);
+      return this.bot.http.post(`/bot/recall?token=${this.token}`, payload);
     }
   }
 
   async _getGuild(guildId: string): Promise<Types.GroupInfo>
   {
     const payload = { "groupId": guildId };
-    return this.httpWeb.post(`/group/group-info`, payload);
+    return this.bot.http.postWeb(`/group/group-info`, payload);
   }
 
   async getGuild(guildId: string): Promise<Universal.Guild>
@@ -199,7 +197,7 @@ export class Internal
       return {
         id: _payload.data.group.groupId,
         name: _payload.data.group.name,
-        avatar: await getImageAsBase64(_payload.data.group.avatarUrl, this.bot.ctx.http)
+        avatar: await getImageAsBase64(_payload.data.group.avatarUrl, this.bot.http)
       };
     } catch (error)
     {
@@ -210,7 +208,7 @@ export class Internal
 
   async _getUser(userId: string): Promise<Types.UserInfoResponse>
   {
-    return this.httpWeb.get(`/user/homepage?userId=${userId}`);
+    return this.bot.http.getWeb(`/user/homepage?userId=${userId}`);
   }
 
   async getUser(userId: string): Promise<Universal.User>
@@ -225,7 +223,7 @@ export class Internal
         return {
           id: userPayload.data.user.userId,
           name: userPayload.data.user.nickname,
-          avatar: await getImageAsBase64(userPayload.data.user.avatarUrl, this.bot.ctx.http),
+          avatar: await getImageAsBase64(userPayload.data.user.avatarUrl, this.bot.http),
           isBot: false, // 这是一个普通用户
         };
       }
@@ -238,7 +236,7 @@ export class Internal
           return {
             id: botPayload.data.bot.botId,
             name: botPayload.data.bot.nickname,
-            avatar: await getImageAsBase64(botPayload.data.bot.avatarUrl, this.bot.ctx.http),
+            avatar: await getImageAsBase64(botPayload.data.bot.avatarUrl, this.bot.http),
             isBot: true, // 这是一个机器人
           };
         }
@@ -273,7 +271,7 @@ export class Internal
 
   async getBotInfo(botId: string): Promise<Types.BotInfoResponse>
   {
-    return this.httpWeb.post(`/bot/bot-info`, { botId });
+    return this.bot.http.postWeb(`/bot/bot-info`, { botId });
   }
 
   async getMessageList(channelId: string, messageId: string, options: { before?: number; after?: number; } = {}): Promise<Types.ApiResponse>
@@ -283,7 +281,7 @@ export class Internal
     const { before, after } = options;
     this.bot.logInfo(`获取消息列表，channelId: ${channelId}`);
     const url = `/bot/messages?token=${this.token}&chat-id=${id}&chat-type=${chatType}&message-id=${messageId}&before=${before || 1}&after=${after || 1}`;
-    return this.http.get(url);
+    return this.bot.http.get(url);
   }
 
   async _getMessage(channelId: string, messageId: string): Promise<Types.ApiResponse>
@@ -340,7 +338,7 @@ export class Internal
       ...options
     };
 
-    return this.http.post(`/bot/board?token=${this.token}`, payload);
+    return this.bot.http.post(`/bot/board?token=${this.token}`, payload);
   }
 
   async setAllBoard(
@@ -359,7 +357,7 @@ export class Internal
       content,
       ...options
     };
-    return this.http.post(`/bot/board-all?token=${this.token}`, payload);
+    return this.bot.http.post(`/bot/board-all?token=${this.token}`, payload);
   }
 
   async getChannel(channelId: string, guildId?: string): Promise<Universal.Channel>
@@ -393,14 +391,14 @@ export class Internal
     {
       payload.memberId = memberId;
     }
-    return this.http.post('/bot/board-dismiss', payload, {
+    return this.bot.http.post('/bot/board-dismiss', payload, {
       params: { token: this.token },
     });
   }
 
   async dismissAllBoard(): Promise<Types.YunhuResponse>
   {
-    return this.http.post('/bot/board-all-dismiss', {}, {
+    return this.bot.http.post('/bot/board-all-dismiss', {}, {
       params: { token: this.token },
     });
   }
