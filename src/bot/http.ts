@@ -36,39 +36,86 @@ export class BotHttp
   }
 
   /**
-   * 发送POST请求到标准API
+   * 带重试的请求包装器
+   * @param requestFn 请求函数
+   * @param requestName 请求名称（用于日志）
+   */
+  private async withRetry<T>(requestFn: () => Promise<T>, requestName: string): Promise<T>
+  {
+    const maxRetries = this.bot.config.maxRetries || 3;
+    let lastError: Error;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++)
+    {
+      try
+      {
+        return await requestFn();
+      } catch (error)
+      {
+        lastError = error;
+
+        if (attempt < maxRetries)
+        {
+          // 计算延迟时间：第1次重试延迟1秒，第2次2秒，以此类推
+          const delayMs = attempt * 1000;
+          this.bot.logInfo(`${requestName} 请求失败 (尝试 ${attempt}/${maxRetries})，${delayMs}ms 后重试...`);
+          await new Promise(resolve => setTimeout(resolve, delayMs));
+        } else
+        {
+          this.bot.loggerError(`${requestName} 请求失败，已达到最大重试次数 (${maxRetries})`, error);
+        }
+      }
+    }
+
+    throw lastError;
+  }
+
+  /**
+   * 发送POST请求到标准API（带重试）
    */
   async post<T = any>(url: string, data?: any, config?: HTTP.RequestConfig): Promise<T>
   {
-    return this.httpApi.post(url, data, config);
+    return this.withRetry(
+      () => this.httpApi.post(url, data, config),
+      `POST ${url}`
+    );
   }
 
   /**
-   * 发送GET请求到标准API
+   * 发送GET请求到标准API（带重试）
    */
   async get<T = any>(url: string, config?: HTTP.RequestConfig): Promise<T>
   {
-    return this.httpApi.get(url, config);
+    return this.withRetry(
+      () => this.httpApi.get(url, config),
+      `GET ${url}`
+    );
   }
 
   /**
-   * 发送POST请求到Web API
+   * 发送POST请求到Web API（带重试）
    */
   async postWeb<T = any>(url: string, data?: any, config?: HTTP.RequestConfig): Promise<T>
   {
-    return this.httpWeb.post(url, data, config);
+    return this.withRetry(
+      () => this.httpWeb.post(url, data, config),
+      `POST(Web) ${url}`
+    );
   }
 
   /**
-   * 发送GET请求到Web API
+   * 发送GET请求到Web API（带重试）
    */
   async getWeb<T = any>(url: string, config?: HTTP.RequestConfig): Promise<T>
   {
-    return this.httpWeb.get(url, config);
+    return this.withRetry(
+      () => this.httpWeb.get(url, config),
+      `GET(Web) ${url}`
+    );
   }
 
   /**
-   * 下载文件
+   * 下载文件（带重试）
    * @param url 文件URL
    * @param config 请求配置
    */
@@ -84,7 +131,10 @@ export class BotHttp
       }
     };
 
-    return this.bot.ctx.http.file(url, fileConfig);
+    return this.withRetry(
+      () => this.bot.ctx.http.file(url, fileConfig),
+      `FILE ${url.length > 100 ? url.substring(0, 100) + '...' : url}`
+    );
   }
 
   /**

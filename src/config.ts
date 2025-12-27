@@ -21,6 +21,7 @@ export interface Config
   uploadTimeout: number;
   enableStream: boolean;
   streamDuration?: number;
+  maxRetries: number;
 }
 
 export const Config: Schema<Config> =
@@ -65,6 +66,16 @@ export const Config: Schema<Config> =
         .default("rgba(0, 0, 0, 1)")
         .description('音频转为视频时使用的背景颜色。<br>仅RGB通道生效，A通道（透明度）不生效'),
     }).description('进阶设置'),
+
+    Schema.object({
+      maxRetries: Schema.number()
+        .role('slider')
+        .min(1)
+        .max(10)
+        .step(1)
+        .default(3)
+        .description('网络请求失败时的最大重试次数'),
+    }).description('网络请求设置'),
 
     Schema.object({
       enableStream: Schema.boolean()
