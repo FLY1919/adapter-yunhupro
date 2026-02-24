@@ -1,4 +1,4 @@
-# Koishi Adapter for Yunhu 
+# Koishi Adapter for Yunhu
 
 [![npm version](https://img.shields.io/npm/v/koishi-plugin-adapter-yunhupro)](https://www.npmjs.com/package/koishi-plugin-adapter-yunhupro)
 [![npm downloads](https://img.shields.io/npm/dt/koishi-plugin-adapter-yunhupro)](https://www.npmjs.com/package/koishi-plugin-adapter-yunhupro)
@@ -8,13 +8,13 @@
 本插件为 [Koishi](https://koishi.chat/) 框架提供了一个[云湖 (Yunhu)](https://www.yhchat.com/) 平台适配器。
 
 > **📢 项目来源声明**
-> 
+>
 > 本项目基于 **[@WindyPear](https://github.com/WindyPear-Team/koishi-plugin-adapter-yunhu) 的 `adapter-yunhu`** 进行二次开发、维护与功能更新。
 >
 > **开发者寄语：**
-> 
+>
 > 原作者没时间维护，我也没时间（我是高中生，悲）。
-> 
+>
 > 但仍会尽力维护，欢迎大家使用和反馈！
 
 ## ⚙️ 文档
