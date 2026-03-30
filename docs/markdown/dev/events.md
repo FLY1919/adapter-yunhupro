@@ -7,6 +7,7 @@
 您可以在插件中通过 `ctx.on('EVENT_NAME', (session) => { ... })` 来监听这些事件。
 
 例如：
+
 ```ts
   //  监听按钮事件
   ctx.on('interaction/button', async (session) => {
@@ -30,9 +31,9 @@
 | `group.leave`    | `guild-member-removed` | 成员退出群组           |
 
 :::tip
-`friend-added` 、`friend-deleted`事件不存在于 [Satori 官方文档](https://koishi.chat/zh-CN/api/resources/user.html#%E4%BA%8B%E4%BB%B6) 中。
+`friend-added` 、`friend-deleted`事件不存在于 [Satori 官方文档](https://satori.chat/zh-CN/resources/friend.html#friend-request) 中。
 
-不过你可以在这里找到他们的实际应用 -> https://github.com/satorijs/satori/blob/main/adapters/qq/src/utils.ts#L186
+不过你可以在这里找到他们的实际应用 -> <https://github.com/satorijs/satori/blob/main/adapters/qq/src/utils.ts#L186>
 :::
 
 ## 群组角色变动事件
@@ -56,5 +57,5 @@
 
 但是为了兼容性（比如大部分插件不会单独监听`interaction/command`事件），本适配器会同时下发两个事件（`message`、`interaction/command`）。
 
-如果插件有特殊需求，就单独处理interaction/command事件；没有特殊需求，就直接当普通输入处理。
+如果插件有特殊需求，就单独处理`interaction/command`事件；没有特殊需求，就直接当普通输入处理。
 :::

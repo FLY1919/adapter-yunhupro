@@ -26,11 +26,11 @@ if (bot == null) return;
 bot.sendMessage(channelId: string, content: Fragment, guildId?: string, options?: SendOptions): Promise<string[]>
 ```
 
-*   **`channelId`**: 频道 ID。对于私聊，格式为 `private:USER_ID`；对于群聊，格式为 `group:GROUP_ID`。
-*   **`content`**: 要发送的消息内容，可以是字符串或使用 `h()` 创建的消息元素。
-*   **`guildId`**: (可选) 群组 ID。
-*   **`options`**: (可选) 发送选项。
-*   **返回值**: `Promise<string[]>`，包含已发送消息的 ID 列表。
+* **`channelId`**: 频道 ID。对于私聊，格式为 `private:USER_ID`；对于群聊，格式为 `group:GROUP_ID`。
+* **`content`**: 要发送的消息内容，可以是字符串或使用 `h()` 创建的消息元素。
+* **`guildId`**: (可选) 群组 ID。
+* **`options`**: (可选) 发送选项。
+* **返回值**: `Promise<string[]>`，包含已发送消息的 ID 列表。
 
 ### deleteMessage()
 
@@ -40,9 +40,9 @@ bot.sendMessage(channelId: string, content: Fragment, guildId?: string, options?
 bot.deleteMessage(channelId: string, messageId: string): Promise<void>
 ```
 
-*   **`channelId`**: 消息所在的频道 ID。
-*   **`messageId`**: 要删除的消息 ID。
-*   **返回值**: `Promise<void>`。
+* **`channelId`**: 消息所在的频道 ID。
+* **`messageId`**: 要删除的消息 ID。
+* **返回值**: `Promise<void>`。
 
 ### editMessage()
 
@@ -52,10 +52,10 @@ bot.deleteMessage(channelId: string, messageId: string): Promise<void>
 bot.editMessage(channelId: string, messageId: string, content: Fragment): Promise<void>
 ```
 
-*   **`channelId`**: 消息所在的频道 ID。
-*   **`messageId`**: 要编辑的消息 ID。
-*   **`content`**: 新的消息内容，可以是字符串或使用 `h()` 创建的消息元素。
-*   **返回值**: `Promise<void>`。
+* **`channelId`**: 消息所在的频道 ID。
+* **`messageId`**: 要编辑的消息 ID。
+* **`content`**: 新的消息内容，可以是字符串或使用 `h()` 创建的消息元素。
+* **返回值**: `Promise<void>`。
 
 ### getMessage()
 
@@ -65,9 +65,9 @@ bot.editMessage(channelId: string, messageId: string, content: Fragment): Promis
 bot.getMessage(channelId: string, messageId: string): Promise<Universal.Message>
 ```
 
-*   **`channelId`**: 消息所在的频道 ID。
-*   **`messageId`**: 要获取的消息 ID。
-*   **返回值**: `Promise<Universal.Message>`，一个符合 Koishi 规范的消息对象。
+* **`channelId`**: 消息所在的频道 ID。
+* **`messageId`**: 要获取的消息 ID。
+* **返回值**: `Promise<Universal.Message>`，一个符合 Koishi 规范的消息对象。
 
 ### getUser()
 
@@ -77,8 +77,8 @@ bot.getMessage(channelId: string, messageId: string): Promise<Universal.Message>
 bot.getUser(userId: string): Promise<Universal.User>
 ```
 
-*   **`userId`**: 要查询的用户 ID。
-*   **返回值**: `Promise<Universal.User>`，一个符合 Koishi 规范的用户对象。
+* **`userId`**: 要查询的用户 ID。
+* **返回值**: `Promise<Universal.User>`，一个符合 Koishi 规范的用户对象。
 
 ### getGuild()
 
@@ -88,8 +88,8 @@ bot.getUser(userId: string): Promise<Universal.User>
 bot.getGuild(guildId: string): Promise<Universal.Guild>
 ```
 
-*   **`guildId`**: 要查询的群组 ID。
-*   **返回值**: `Promise<Universal.Guild>`，一个符合 Koishi 规范的群组对象。
+* **`guildId`**: 要查询的群组 ID。
+* **返回值**: `Promise<Universal.Guild>`，一个符合 Koishi 规范的群组对象。
 
 ### getGuildMember()
 
@@ -99,9 +99,9 @@ bot.getGuild(guildId: string): Promise<Universal.Guild>
 bot.getGuildMember(guildId: string, userId: string): Promise<Universal.GuildMember>
 ```
 
-*   **`guildId`**: 成员所在的群组 ID。
-*   **`userId`**: 要查询的成员的用户 ID。
-*   **返回值**: `Promise<Universal.GuildMember>`，一个符合 Koishi 规范的群组成员对象。
+* **`guildId`**: 成员所在的群组 ID。
+* **`userId`**: 要查询的成员的用户 ID。
+* **返回值**: `Promise<Universal.GuildMember>`，一个符合 Koishi 规范的群组成员对象。
 
 ### getChannel()
 
@@ -111,9 +111,9 @@ bot.getGuildMember(guildId: string, userId: string): Promise<Universal.GuildMemb
 bot.getChannel(channelId: string, guildId?: string): Promise<Universal.Channel>
 ```
 
-*   **`channelId`**: 要查询的频道 ID。
-*   **`guildId`**: (可选) 频道所在的群组 ID。
-*   **返回值**: `Promise<Universal.Channel>`，一个符合 Koishi 规范的频道对象。
+* **`channelId`**: 要查询的频道 ID。
+* **`guildId`**: (可选) 频道所在的群组 ID。
+* **返回值**: `Promise<Universal.Channel>`，一个符合 Koishi 规范的频道对象。
 
 ### start()
 
@@ -123,7 +123,7 @@ bot.getChannel(channelId: string, guildId?: string): Promise<Universal.Channel>
 bot.start(): Promise<void>
 ```
 
-*   **返回值**: `Promise<void>`。
+* **返回值**: `Promise<void>`。
 
 ### stop()
 
@@ -133,7 +133,7 @@ bot.start(): Promise<void>
 bot.stop(): Promise<void>
 ```
 
-*   **返回值**: `Promise<void>`。
+* **返回值**: `Promise<void>`。
 
 ### setDisposing()
 
@@ -143,8 +143,8 @@ bot.stop(): Promise<void>
 bot.setDisposing(disposing: boolean): void
 ```
 
-*   **`disposing`**: 是否正在处理中。
-*   **返回值**: `void`。
+* **`disposing`**: 是否正在处理中。
+* **返回值**: `void`。
 
 ### logInfo()
 
@@ -154,8 +154,8 @@ bot.setDisposing(disposing: boolean): void
 bot.logInfo(...args: any[]): void
 ```
 
-*   **`args`**: 日志参数。
-*   **返回值**: `void`。
+* **`args`**: 日志参数。
+* **返回值**: `void`。
 
 ### loggerInfo()
 
@@ -165,8 +165,8 @@ bot.logInfo(...args: any[]): void
 bot.loggerInfo(...args: any[]): void
 ```
 
-*   **`args`**: 日志参数。
-*   **返回值**: `void`。
+* **`args`**: 日志参数。
+* **返回值**: `void`。
 
 ### loggerError()
 
@@ -176,8 +176,8 @@ bot.loggerInfo(...args: any[]): void
 bot.loggerError(...args: any[]): void
 ```
 
-*   **`args`**: 日志参数。
-*   **返回值**: `void`。
+* **`args`**: 日志参数。
+* **返回值**: `void`。
 
 ## Bot.Internal 方法
 
@@ -189,12 +189,12 @@ bot.loggerError(...args: any[]): void
 bot.internal.getYunhuMessageList(channelId: string, messageId: string, options?: { before?: number; after?: number }): Promise<any>
 ```
 
-*   **`channelId`**: 消息所在的频道 ID。
-*   **`messageId`**: 作为基准点的消息 ID。
-*   **`options`**: 可选参数。
-    *   `before`: 获取 `messageId` 之前的消息数量。
-    *   `after`: 获取 `messageId` 之后的消息数量。
-*   **返回值**: `Promise<any>`，云湖 API 返回的原始消息列表数据。
+* **`channelId`**: 消息所在的频道 ID。
+* **`messageId`**: 作为基准点的消息 ID。
+* **`options`**: 可选参数。
+  * `before`: 获取 `messageId` 之前的消息数量。
+  * `after`: 获取 `messageId` 之后的消息数量。
+* **返回值**: `Promise<any>`，云湖 API 返回的原始消息列表数据。
 
 ### uploadImage()
 
@@ -204,8 +204,8 @@ bot.internal.getYunhuMessageList(channelId: string, messageId: string, options?:
 bot.internal.uploadImage(image: string | Buffer): Promise<string>
 ```
 
-*   **`image`**: 图片资源，可以是图片的 URL (字符串) 或 Buffer。
-*   **返回值**: `Promise<string>`，上传成功后返回的图片URL。
+* **`image`**: 图片资源，可以是图片的 URL (字符串) 或 Buffer。
+* **返回值**: `Promise<string>`，上传成功后返回的图片URL。
 
 ### uploadImageKey()
 
@@ -225,8 +225,8 @@ bot.internal.uploadImage(image: string | Buffer): Promise<string>
 bot.internal.uploadImageKey(image: string | Buffer): Promise<{ url: string; key: string; }>
 ```
 
-*   **`image`**: 图片资源，可以是图片的 URL (字符串) 或 Buffer。
-*   **返回值**: `Promise<{ url: string; key: string; }>`，上传成功后返回的图片URL和key。
+* **`image`**: 图片资源，可以是图片的 URL (字符串) 或 Buffer。
+* **返回值**: `Promise<{ url: string; key: string; }>`，上传成功后返回的图片URL和key。
 
 ### uploadVideo()
 
@@ -236,8 +236,8 @@ bot.internal.uploadImageKey(image: string | Buffer): Promise<{ url: string; key:
 bot.internal.uploadVideo(video: string | Buffer): Promise<string>
 ```
 
-*   **`video`**: 视频资源，可以是视频的 URL (字符串) 或 Buffer。
-*   **返回值**: `Promise<string>`，上传成功后返回的视频URL。
+* **`video`**: 视频资源，可以是视频的 URL (字符串) 或 Buffer。
+* **返回值**: `Promise<string>`，上传成功后返回的视频URL。
 
 ### uploadVideoKey()
 
@@ -247,8 +247,8 @@ bot.internal.uploadVideo(video: string | Buffer): Promise<string>
 bot.internal.uploadVideoKey(video: string | Buffer): Promise<{ url: string; key: string; }>
 ```
 
-*   **`video`**: 视频资源，可以是视频的 URL (字符串) 或 Buffer。
-*   **返回值**: `Promise<{ url: string; key: string; }>`，上传成功后返回的视频URL和key。
+* **`video`**: 视频资源，可以是视频的 URL (字符串) 或 Buffer。
+* **返回值**: `Promise<{ url: string; key: string; }>`，上传成功后返回的视频URL和key。
 
 ### uploadAudio()
 
@@ -258,8 +258,8 @@ bot.internal.uploadVideoKey(video: string | Buffer): Promise<{ url: string; key:
 bot.internal.uploadAudio(audio: string | Buffer): Promise<string>
 ```
 
-*   **`audio`**: 音频资源，可以是音频的 URL (字符串) 或 Buffer。
-*   **返回值**: `Promise<string>`，上传成功后返回的音频URL。
+* **`audio`**: 音频资源，可以是音频的 URL (字符串) 或 Buffer。
+* **返回值**: `Promise<string>`，上传成功后返回的音频URL。
 
 ### uploadAudioKey()
 
@@ -269,8 +269,8 @@ bot.internal.uploadAudio(audio: string | Buffer): Promise<string>
 bot.internal.uploadAudioKey(audio: string | Buffer): Promise<{ url: string; key: string; }>
 ```
 
-*   **`audio`**: 音频资源，可以是音频的 URL (字符串) 或 Buffer。
-*   **返回值**: `Promise<{ url: string; key: string; }>`，上传成功后返回的音频URL和key。
+* **`audio`**: 音频资源，可以是音频的 URL (字符串) 或 Buffer。
+* **返回值**: `Promise<{ url: string; key: string; }>`，上传成功后返回的音频URL和key。
 
 ### uploadFile()
 
@@ -280,8 +280,8 @@ bot.internal.uploadAudioKey(audio: string | Buffer): Promise<{ url: string; key:
 bot.internal.uploadFile(file: string | Buffer): Promise<string>
 ```
 
-*   **`file`**: 文件资源，可以是文件的 URL (字符串) 或 Buffer。
-*   **返回值**: `Promise<string>`，上传成功后返回的文件URL。
+* **`file`**: 文件资源，可以是文件的 URL (字符串) 或 Buffer。
+* **返回值**: `Promise<string>`，上传成功后返回的文件URL。
 
 ### uploadFileKey()
 
@@ -291,8 +291,8 @@ bot.internal.uploadFile(file: string | Buffer): Promise<string>
 bot.internal.uploadFileKey(file: string | Buffer): Promise<{ url: string; key: string; }>
 ```
 
-*   **`file`**: 文件资源，可以是文件的 URL (字符串) 或 Buffer。
-*   **返回值**: `Promise<{ url: string; key: string; }>`，上传成功后返回的文件URL和key。
+* **`file`**: 文件资源，可以是文件的 URL (字符串) 或 Buffer。
+* **返回值**: `Promise<{ url: string; key: string; }>`，上传成功后返回的文件URL和key。
 
 ### getBotInfo()
 
@@ -302,8 +302,8 @@ bot.internal.uploadFileKey(file: string | Buffer): Promise<{ url: string; key: s
 bot.internal.getBotInfo(botId: string): Promise<any>
 ```
 
-*   **`botId`**: 要查询的机器人 ID。
-*   **返回值**: `Promise<any>`，API 返回的机器人信息数据。
+* **`botId`**: 要查询的机器人 ID。
+* **返回值**: `Promise<any>`，API 返回的机器人信息数据。
 
 ### setBoard()
 
@@ -313,13 +313,13 @@ bot.internal.getBotInfo(botId: string): Promise<any>
 bot.internal.setBoard(chatId: string, contentType: 'text' | 'markdown' | 'html', content: string, options?: { memberId?: string; expireTime?: number }): Promise<any>
 ```
 
-*   **`chatId`**: 对话 ID (私聊为用户 ID，群聊为群组 ID)。
-*   **`contentType`**: 内容类型。
-*   **`content`**: 看板内容。
-*   **`options`**:
-    *   `memberId`: 要设置看板的用户 ID。
-    *   `expireTime`: (可选) 过期时间戳 (秒)。
-*   **返回值**: `Promise<any>`，API 返回的原始数据。
+* **`chatId`**: 对话 ID (私聊为用户 ID，群聊为群组 ID)。
+* **`contentType`**: 内容类型。
+* **`content`**: 看板内容。
+* **`options`**:
+  * `memberId`: 要设置看板的用户 ID。
+  * `expireTime`: (可选) 过期时间戳 (秒)。
+* **返回值**: `Promise<any>`，API 返回的原始数据。
 
 ### setAllBoard()
 
@@ -329,12 +329,12 @@ bot.internal.setBoard(chatId: string, contentType: 'text' | 'markdown' | 'html',
 bot.internal.setAllBoard(chatId: string, contentType: 'text' | 'markdown' | 'html', content: string, options?: { expireTime?: number }): Promise<any>
 ```
 
-*   **`chatId`**: 群组 ID。
-*   **`contentType`**: 内容类型。
-*   **`content`**: 看板内容。
-*   **`options`**:
-    *   `expireTime`: (可选) 过期时间戳 (秒)。
-*   **返回值**: `Promise<any>`，API 返回的原始数据。
+* **`chatId`**: 群组 ID。
+* **`contentType`**: 内容类型。
+* **`content`**: 看板内容。
+* **`options`**:
+  * `expireTime`: (可选) 过期时间戳 (秒)。
+* **返回值**: `Promise<any>`，API 返回的原始数据。
 
 ### dismissBoard()
 
@@ -344,10 +344,10 @@ bot.internal.setAllBoard(chatId: string, contentType: 'text' | 'markdown' | 'htm
 bot.internal.dismissBoard(chatId: string, chatType: 'user' | 'group', memberId?: string): Promise<any>
 ```
 
-*   **`chatId`**: 对话 ID。
-*   **`chatType`**: 对话类型。
-*   **`memberId`**: (可选) 要取消看板的用户 ID。如果 `chatType` 为 `user`，则此项必填。
-*   **返回值**: `Promise<any>`，API 返回的原始数据。
+* **`chatId`**: 对话 ID。
+* **`chatType`**: 对话类型。
+* **`memberId`**: (可选) 要取消看板的用户 ID。如果 `chatType` 为 `user`，则此项必填。
+* **返回值**: `Promise<any>`，API 返回的原始数据。
 
 ### dismissAllBoard()
 
@@ -357,4 +357,4 @@ bot.internal.dismissBoard(chatId: string, chatType: 'user' | 'group', memberId?:
 bot.internal.dismissAllBoard(): Promise<any>
 ```
 
-*   **返回值**: `Promise<any>`，API 返回的原始数据。
+* **返回值**: `Promise<any>`，API 返回的原始数据。

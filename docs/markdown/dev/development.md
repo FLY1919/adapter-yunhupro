@@ -8,10 +8,12 @@
 
 - Node.js >= 22.0.0
 - Koishi 4.18.8+
-- TypeScript 
+- TypeScript
 
 ### 安装依赖
+
 在koishi项目模板安装
+
 ```bash
 yarn clone FLY1919/adapter-yunhupro
 ```
@@ -26,7 +28,7 @@ yarn dev
 
 以确保 `settings.json` 生效，以统一项目的代码风格。
 
-详见 -> https://github.com/FLY1919/adapter-yunhupro/blob/main/.vscode/settings.json
+详见 -> <https://github.com/FLY1919/adapter-yunhupro/blob/main/.vscode/settings.json>
 
 :::
 

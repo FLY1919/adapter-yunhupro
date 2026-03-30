@@ -6,7 +6,7 @@
 
 **链接**: [https://github.com/yh-Tpdev/yhchatAPI](https://github.com/yh-Tpdev/yhchatAPI)
 
-**描述**: 
+**描述**:
 
 该文档包含了丰富的用户侧API说明，特别适合用于第三方客户端的开发工作。
 
@@ -16,7 +16,6 @@
 
 **链接**: [https://codeberg.org/ybr/yhwiki](https://codeberg.org/ybr/yhwiki)
 
-**描述**: 
+**描述**:
 
 消息类型示例页面（[https://www.yhchat.top/#/yunhu-bot-dev/msg-type-examples](https://www.yhchat.top/#/yunhu-bot-dev/msg-type-examples)）完整罗列了各种事件内容。
-
