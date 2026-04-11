@@ -125,7 +125,9 @@ export async function adaptSession(bot: YunhuBot, input: Yunhu.YunhuEvent)
           platform: 'yunhu',
           selfId: bot.selfId,
           timestamp: message.sendTime,
-          member: { roles: [sender.senderUserLevel] },
+          member: {
+            roles: [{ id: sender.senderUserLevel, name: sender.senderUserLevel }],
+          },
           user: {
             id: sender.senderId,
             name: sender.senderNickname,
@@ -195,11 +197,13 @@ export async function adaptSession(bot: YunhuBot, input: Yunhu.YunhuEvent)
       }
 
       const sessionPayload = {
-        type: 'message',
+        type: 'message' as const,
         platform: 'yunhu',
         selfId: bot.selfId,
         timestamp: message.sendTime,
-        member: { roles: [sender.senderUserLevel] },
+        member: {
+          roles: [{ id: sender.senderUserLevel, name: sender.senderUserLevel }],
+        },
         user: {
           id: sender.senderId,
           name: sender.senderNickname,
