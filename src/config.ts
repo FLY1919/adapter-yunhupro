@@ -109,15 +109,15 @@ export const Config: Schema<Config> =
     Schema.object({
       endpoint: Schema.string()
         .default('https://chat-go.jwzhd.com/open-apis/v1')
-        .description('云湖 API 地址，请勿修改')
+        .description('云湖 API 地址')
         .role('link'),
       endpointweb: Schema.string()
         .default('https://chat-web-go.jwzhd.com/v1')
-        .description('云湖 web API 地址，请勿修改')
+        .description('云湖 web API 地址')
         .role('link'),
       resourceEndpoint: Schema.string()
         .default('https://chat-img.jwznb.com/')
-        .description('资源服务器地址，请勿修改')
+        .description('资源服务器地址')
         .role('link'),
     }).description('连接设置'),
 
