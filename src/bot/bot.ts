@@ -1,7 +1,7 @@
 import { getImageAsBase64 } from '../utils/utils';
 import { Bot, Context, Fragment, Logger, Universal } from 'koishi';
 import { SendOptions } from '@satorijs/protocol';
-import { BotTableItem, Config } from '../config';
+import { Config } from '../config';
 import { YunhuMessageEncoder } from './message';
 import { fragmentToPayload } from './message';
 import { Internal } from './internal';
@@ -17,21 +17,19 @@ export class YunhuBot extends Bot<Context, Config>
   public http: BotHttp;
   private Encoder: YunhuMessageEncoder;
   private isDisposing = false;
-  public botConfig: BotTableItem;
 
-  constructor(public ctx: Context, botConfig: BotTableItem, config: Config)
+  constructor(public ctx: Context, config: Config)
   {
     super(ctx, config, 'yunhu');
     this.platform = 'yunhu';
-    this.selfId = botConfig.botId;
-    this.botConfig = botConfig;
+    this.selfId = ''; // 初始为空，稍后通过API获取
 
     // 创建Bot HTTP实例
     this.http = new BotHttp(this, this.config.endpoint, this.config.endpointweb);
 
     // 初始化内部接口
-    this.internal = new Internal(botConfig.token, this.config.endpoint, this);
-    this.Encoder = new YunhuMessageEncoder(this, botConfig.token);
+    this.internal = new Internal(config.token, this.config.endpoint, this);
+    this.Encoder = new YunhuMessageEncoder(this, config.token);
   }
 
   async getUser(userId: string)
@@ -152,6 +150,10 @@ export class YunhuBot extends Bot<Context, Config>
   {
     try
     {
+      // 通过发送消息到不存在的群组来获取机器人ID
+      await this.fetchBotId();
+
+      // 获取机器人详细信息
       const botInfo = await this.internal.getBotInfo(this.selfId);
       if (botInfo.code === 1)
       {
@@ -165,6 +167,45 @@ export class YunhuBot extends Bot<Context, Config>
     {
       this.loggerError('Failed to get bot info:', error);
       this.offline();
+    }
+  }
+
+  /**
+   * 通过发送消息到不存在的群组来获取机器人ID
+   */
+  private async fetchBotId()
+  {
+    try
+    {
+      this.logInfo('正在获取机器人ID...');
+
+      // 向不存在的群组发送消息
+      const response = await this.http.post(`/bot/send?token=${this.config.token}`, {
+        recvId: '不存在的群组ID',
+        recvType: 'group',
+        contentType: 'text',
+        content: {
+          text: '获取机器人ID'
+        }
+      });
+
+      // 解析错误消息中的机器人ID
+      if (response.code === -1 && response.msg)
+      {
+        // 匹配格式: "群(ID:xxx)中未添加当前机器人(ID: 37090343)。"
+        const match = response.msg.match(/当前机器人\(ID:\s*(\d+)\)/);
+        if (match && match[1])
+        {
+          this.selfId = match[1];
+          return;
+        }
+      }
+
+      throw new Error('无法从响应中解析机器人ID');
+    } catch (error)
+    {
+      this.loggerError('获取机器人ID失败:', error);
+      throw error;
     }
   }
 

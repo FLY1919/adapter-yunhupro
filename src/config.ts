@@ -1,21 +1,15 @@
 import { Schema } from 'koishi';
 
-export interface BotTableItem
-{
-  enable: boolean;
-  botName: string;
-  botId: string;
-  token: string;
-  path: string;
-}
-
 export interface Config
 {
+  token: string;
+  type: 'websocket' | 'webhook';
+  serverPath?: string;
+  path?: string;
   endpoint?: string;
   endpointweb?: string;
   resourceEndpoint?: string;
   loggerinfo: boolean;
-  botTable: BotTableItem[];
   audioBackgroundColor?: string;
   showConsole?: boolean;
   uploadTimeout: number;
@@ -27,32 +21,30 @@ export interface Config
 export const Config: Schema<Config> =
   Schema.intersect([
     Schema.object({
-      botTable: Schema.array(
-        Schema.object({
-          enable: Schema.boolean()
-            .default(true)
-            .description('启用'),
-          botName: Schema.string()
-            .description('标识名称'),
-          botId: Schema.string()
-            .description('账号ID'),
-          token: Schema.string()
-            .description('Token')
-            .role('secret'),
-          path: Schema.string()
-            .default('/yunhu')
-            .description('监听路径'),
-        }))
-        .role('table')
-        .default([{
-          "enable": false,
-          "botName": "方便识别的名称，无实际作用。记得勾选左侧的开关",
-          "botId": "填入你的机器人ID",
-          "token": "填入你的机器人Token",
-          "path": "/yunhu"
-        }])
-        .description('机器人配置列表。<br>需填写机器人的ID、Token、监听路径。<br>**注意**：不同机器人 需要设置 **不同的接收路径**，否则视为无效'),
-    }).description('基础设置'),
+      token: Schema.string()
+        .description('机器人的Token')
+        .required()
+        .role('secret'),
+      type: Schema.union(['websocket', 'webhook'])
+        .default("websocket")
+        .description('订阅方式'),
+    }).description('订阅配置'),
+    Schema.union([
+      Schema.object({
+        type: Schema.const('websocket'),
+        serverPath: Schema.string()
+          .default('wss://ws.jwzhd.com/subscribe')
+          .role("link")
+          .description('云湖websocket地址'),
+      }),
+      Schema.object({
+        type: Schema.const('webhook').required(),
+        path: Schema.string()
+          .default('/yunhu')
+          .role("link")
+          .description('本机监听路径<br>**注意**：使用webhook方式时，不同机器人实例需要设置不同的路径，否则会导致消息混乱'),
+      }),
+    ]),
 
     Schema.object({
       uploadTimeout: Schema.number()

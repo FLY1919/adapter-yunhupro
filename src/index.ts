@@ -9,6 +9,7 @@ import * as path from 'node:path';
 import { adaptSession } from './utils/utils';
 import * as Yunhu from './utils/types';
 import { YunhuBot } from './bot/bot';
+import { YunhuWebSocket } from './bot/websocket';
 import { Config } from './config';
 
 export * from './config';
@@ -33,7 +34,8 @@ export const usage = `
 
 export function apply(ctx: Context, config: Config)
 {
-  const bots: YunhuBot[] = [];
+  let bot: YunhuBot;
+  let wsClient: YunhuWebSocket;
   let isDisposing = false;
 
   ctx.on('ready', async () =>
@@ -55,21 +57,32 @@ export function apply(ctx: Context, config: Config)
       });
     }
 
-    // 筛选出启用的机器人，并去除 path 重复的机器人
-    const uniqueBotsConfig = config.botTable
-      .filter(botConfig => botConfig.enable)
-      .filter((botConfig, index, self) =>
-        index === self.findIndex(b => b.path === botConfig.path)
-      );
+    // 创建机器人实例
+    bot = new YunhuBot(ctx, config);
 
-    // 遍历 botTable，为每个机器人创建实例和路由
-    for (const botConfig of uniqueBotsConfig)
+    // 根据配置类型选择连接方式
+    if (config.type === 'websocket')
     {
-      const bot = new YunhuBot(ctx, botConfig, config);
-      bots.push(bot);
+      // WebSocket方式
+      const serverPath = config.serverPath || 'wss://ws.jwzhd.com/subscribe';
+      wsClient = new YunhuWebSocket(ctx, bot, serverPath, config.token);
 
-      // 为每个机器人设置独立的 Webhook 监听
-      ctx.server.post(botConfig.path, async (koaCtx) =>
+      // 启动机器人（会自动获取ID）
+      await bot.start();
+
+      // 启动WebSocket连接
+      await wsClient.start();
+    }
+    else
+    {
+      // Webhook方式
+      const webhookPath = config.path || '/yunhu';
+
+      // 启动机器人（会自动获取ID）
+      await bot.start();
+
+      // 为机器人设置Webhook监听
+      ctx.server.post(webhookPath, async (koaCtx) =>
       {
         koaCtx.status = 200;
         const payload: Yunhu.YunhuEvent = (koaCtx.request as any).body;
@@ -81,35 +94,43 @@ export function apply(ctx: Context, config: Config)
           bot.online();
         }
 
-        // 转换并分发会话，adaptSession 内部会自行 dispatch
+        // 转换并分发会话
         await adaptSession(bot, payload);
 
         // 返回成功响应
         koaCtx.body = { code: 0, message: 'success' };
       });
 
-      // 处理 GET 请求，用于给用户提示
-      ctx.server.get(botConfig.path, async (koaCtx) =>
+      // 处理GET请求，用于给用户提示
+      ctx.server.get(webhookPath, async (koaCtx) =>
       {
         const templatePath = path.resolve(__dirname, '../data/webhook.html');
         const htmlContent = await fs.readFile(templatePath, 'utf-8');
 
         koaCtx.type = 'html';
         koaCtx.body = htmlContent;
-
       });
-      ctx.logger.info(`[${bot.selfId}] 机器人上线，创建监听：http://localhost:${ctx.server.port}${botConfig.path}`);
+
+      ctx.logger.info(`[${bot.selfId}] 机器人已通过Webhook上线，监听路径：http://localhost:${ctx.server.port}${webhookPath}`);
     }
   });
 
   ctx.on('dispose', async () =>
   {
     isDisposing = true;
-    for (const bot of bots)
+
+    // 停止WebSocket连接
+    if (wsClient)
+    {
+      await wsClient.stop();
+    }
+
+    // 停止机器人
+    if (bot)
     {
       await bot.stop();
     }
+
     ctx.logger.info('适配器已停止运行。');
-    bots.length = 0; // 清空数组
   });
 }

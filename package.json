@@ -49,12 +49,16 @@
       "es": "[云湖](https://www.yhchat.com/) adaptador"
     }
   },
+  "dependencies": {
+    "ws": "^8.18.0"
+  },
   "peerDependencies": {
     "@koishijs/plugin-console": "^5.11.0",
     "koishi": "^4.18.8"
   },
   "devDependencies": {
     "@koishijs/client": "^5.11.0",
+    "@types/ws": "^8.5.13",
     "koishi": "^4.18.8"
   }
 }
