@@ -179,6 +179,167 @@ bot.loggerError(...args: any[]): void
 * **`args`**: 日志参数。
 * **返回值**: `void`。
 
+### muteGuildMember()
+
+禁言群成员。
+
+```typescript
+bot.muteGuildMember(guildId: string, userId: string, duration: number, reason?: string): Promise<void>
+```
+
+* **`guildId`**: 群组 ID。
+* **`userId`**: 要禁言的用户 ID。
+* **`duration`**: 禁言时长（秒）。
+  * `0`: 解除禁言
+  * `600`: 禁言10分钟
+  * `3600`: 禁言1小时
+  * `21600`: 禁言6小时
+  * `43200`: 禁言12小时
+  * `-1`: 永久禁言
+* **`reason`**: (可选) 禁言原因。
+* **返回值**: `Promise<void>`。
+
+**权限要求**: 机器人需要在该群聊中，且拥有允许禁言用户权限（allowGagMember = 1）。
+
+### kickGuildMember()
+
+移除群成员。
+
+```typescript
+bot.kickGuildMember(guildId: string, userId: string, permanent?: boolean): Promise<void>
+```
+
+* **`guildId`**: 群组 ID。
+* **`userId`**: 要移除的用户 ID。
+* **`permanent`**: (可选) 是否永久移除。
+* **返回值**: `Promise<void>`。
+
+**权限要求**: 机器人需要在该群聊中，且拥有允许移除群成员权限（allowRemoveMember = 1）。
+
+**注意**: 不可以移除群主。
+
+### setGuildMemberRole()
+
+给用户添加群组角色（标签）。
+
+```typescript
+bot.setGuildMemberRole(guildId: string, userId: string, roleId: string): Promise<void>
+```
+
+* **`guildId`**: 群组 ID。
+* **`userId`**: 用户 ID。
+* **`roleId`**: 角色 ID的标签名称）。
+* **返回值**: `Promise<void>`。
+
+**权限要求**: 机器人需要在该群聊中，且拥有允许控制标签组权限（allowGroupTagManage = 1）。
+
+**事件**: 调用成功后会触发 `guild-role-created` 事件。
+
+### unsetGuildMemberRole()
+
+移除用户的群组角色（标签）。
+
+```typescript
+bot.unsetGuildMemberRole(guildId: string, userId: string, roleId: string): Promise<void>
+```
+
+* **`guildId`**: 群组 ID。
+* **`userId`**: 用户 ID。
+* **`roleId`**: 角色 ID（标签名称）。
+* **返回值**: `Promise<void>`。
+
+**权限要求**: 机器人需要在该群聊中，且拥有允许控制标签组权限（allowGroupTagManage = 1）。
+
+**事件**: 调用成功后会触发 `guild-role-deleted` 事件。
+
+### getGuildRoleList()
+
+获取群组角色（标签）列表。
+
+```typescript
+bot.getGuildRoleList(guildId: string, next?: string): Promise<Universal.List<Universal.GuildRole>>
+```
+
+* **`guildId`**: 群组 ID。
+* **`next`**: (可选) 分页令牌（暂不支持）。
+* **返回值**: `Promise<Universal.List<Universal.GuildRole>>`，角色列表。
+
+**权限要求**: 机器人需要在该群聊中。
+
+**返回数据结构**:
+```typescript
+{
+  data: [
+    { id: "标签名称", name: "标签名称" },
+    ...
+  ],
+  next: undefined
+}
+```
+
+### createGuildRole()
+
+创建群组角色（标签）。
+
+```typescript
+bot.createGuildRole(guildId: string, data: Partial<Universal.GuildRole>): Promise<Universal.GuildRole>
+```
+
+* **`guildId`**: 群组 ID。
+* **`data`**: 角色信息。
+  * `name`: 角色名称（最长9个字符）。
+  * `id`: 角色 ID（可选，默认使用 name）。
+* **返回值**: `Promise<Universal.GuildRole>`，创建的角色对象。
+
+**权限要求**: 机器人需要在该群聊中，且拥有允许控制标签组权限（allowGroupTagManage = 1）。
+
+**事件**: 调用成功后会触发 `guild-role-created` 事件。
+
+**示例**:
+```typescript
+const role = await bot.createGuildRole('307149245', { name: 'VIP用户' });
+// 返回: { id: 'VIP用户', name: 'VIP用户' }
+```
+
+### updateGuildRole()
+
+修改群组角色（标签）。
+
+```typescript
+bot.updateGuildRole(guildId: string, roleId: string, data: Partial<Universal.GuildRole>): Promise<void>
+```
+
+* **`guildId`**: 群组 ID。
+* **`roleId`**: 要修改的角色 ID（标签名称）。
+* **`data`**: 新的角色信息。
+  * `name`: 新的角色名称（可选）。
+* **返回值**: `Promise<void>`。
+
+**权限要求**: 机器人需要在该群聊中，且拥有允许控制标签组权限（allowGroupTagManage = 1）。
+
+**事件**: 调用成功后会触发 `guild-role-updated` 事件。
+
+**示例**:
+```typescript
+await bot.updateGuildRole('307149245', 'VIP用户', { name: 'SVIP用户' });
+```
+
+### deleteGuildRole()
+
+删除群组角色（标签）。
+
+```typescript
+bot.deleteGuildRole(guildId: string, roleId: string): Promise<void>
+```
+
+* **`guildId`**: 群组 ID。
+* **`roleId`**: 要删除的角色 ID（标签名称）。
+* **返回值**: `Promise<void>`。
+
+**权限要求**: 机器人需要在该群聊中，且拥有允许控制标签组权限（allowGroupTagManage = 1）。
+
+**事件**: 调用成功后会触发 `guild-role-deleted` 事件。
+
 ## Bot.Internal 方法
 
 ### getYunhuMessageList()
@@ -358,3 +519,104 @@ bot.internal.dismissAllBoard(): Promise<any>
 ```
 
 * **返回值**: `Promise<any>`，API 返回的原始数据。
+
+### setGroupMessageTypeLimit()
+
+设置群内消息类型限制。这是云湖特有的功能，用于控制群内允许发送的消息类型。
+
+```typescript
+bot.internal.setGroupMessageTypeLimit(guildId: string, types: string[]): Promise<void>
+```
+
+* **`guildId`**: 群组 ID。
+* **`types`**: 允许的消息类型数组。可选值：
+  * `'text'`: 文本消息
+  * `'image'`: 图片消息
+  * `'video'`: 视频消息
+  * `'audio'`: 音频消息
+  * `'file'`: 文件消息
+  * `'markdown'`: Markdown 消息
+  * `'ark'`: ARK 消息
+  * `'embed'`: Embed 消息
+  * 传入空数组 `[]` 表示不限制消息类型
+* **返回值**: `Promise<void>`。
+
+**权限要求**: 机器人需要在该群聊中，且拥有管理群聊的权限。
+
+## 使用示例
+
+### 禁言和踢出成员
+
+```typescript
+// 禁言用户 10 分钟
+await bot.muteGuildMember('群组ID', '用户ID', 600);
+
+// 永久禁言
+await bot.muteGuildMember('群组ID', '用户ID', -1);
+
+// 解除禁言
+await bot.muteGuildMember('群组ID', '用户ID', 0);
+
+// 踢出群成员
+await bot.kickGuildMember('群组ID', '用户ID');
+```
+
+### 群组角色（标签）管理
+
+```typescript
+// 获取群组角色列表
+const roleList = await bot.getGuildRoleList('群组ID');
+console.log('角色列表:', roleList.data);
+
+// 创建新角色
+const newRole = await bot.createGuildRole('群组ID', {
+  name: '管理员',
+});
+console.log('创建的角色:', newRole);
+
+// 更新角色信息
+await bot.updateGuildRole('群组ID', '角色ID', {
+  name: '超级管理员',
+});
+
+// 为用户添加角色
+await bot.setGuildMemberRole('群组ID', '用户ID', '角色ID');
+
+// 移除用户的角色
+await bot.unsetGuildMemberRole('群组ID', '用户ID', '角色ID');
+
+// 删除角色
+await bot.deleteGuildRole('群组ID', '角色ID');
+```
+
+### 消息类型控制
+
+```typescript
+// 只允许文本消息
+await bot.internal.setGroupMessageTypeLimit('群组ID', ['text']);
+
+// 允许文本和图片
+await bot.internal.setGroupMessageTypeLimit('群组ID', ['text', 'image']);
+
+// 不限制消息类型
+await bot.internal.setGroupMessageTypeLimit('群组ID', []);
+```
+
+### 监听角色事件
+
+```typescript
+// 监听角色创建事件
+ctx.on('guild-role-created', (session) => {
+  console.log('角色已创建:', session.event.role);
+});
+
+// 监听角色更新事件
+ctx.on('guild-role-updated', (session) => {
+  console.log('角色已更新:', session.event.role);
+});
+
+// 监听角色删除事件
+ctx.on('guild-role-deleted', (session) => {
+  console.log('角色已删除:', session.event.role);
+});
+```
