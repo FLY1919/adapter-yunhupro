@@ -402,4 +402,215 @@ export class Internal
       params: { token: this.token },
     });
   }
+
+  /**
+   * 禁言群成员
+   * @param guildId 群组ID
+   * @param userId 用户ID
+   * @param duration 禁言时长（秒），0表示解除禁言，-1表示永久禁言
+   */
+  async muteGuildMember(guildId: string, userId: string, duration: number): Promise<void>
+  {
+    const payload = {
+      groupId: guildId,
+      userId: userId,
+      gag: duration
+    };
+
+    const response = await this.bot.http.post(`/group/gag-member?token=${this.token}`, payload);
+
+    if (response.code !== 1)
+    {
+      throw new Error(`禁言失败: ${response.msg}`);
+    }
+  }
+
+  /**
+   * 移除群成员
+   * @param guildId 群组ID
+   * @param userId 用户ID
+   */
+  async kickGuildMember(guildId: string, userId: string): Promise<void>
+  {
+    const payload = {
+      groupId: guildId,
+      userId: userId
+    };
+
+    const response = await this.bot.http.post(`/group/remove-member?token=${this.token}`, payload);
+
+    if (response.code !== 1)
+    {
+      throw new Error(`移除群成员失败: ${response.msg}`);
+    }
+  }
+
+  /**
+   * 群内消息类型控制（特殊API）
+   * @param guildId 群组ID
+   * @param types 允许的消息类型数组，为空表示不限制
+   */
+  async setGroupMessageTypeLimit(guildId: string, types: string[]): Promise<void>
+  {
+    const payload = {
+      groupId: guildId,
+      type: types.join(',')
+    };
+
+    const response = await this.bot.http.post(`/group/msg-type-limit?token=${this.token}`, payload);
+
+    if (response.code !== 1)
+    {
+      throw new Error(`设置消息类型限制失败: ${response.msg}`);
+    }
+  }
+
+  /**
+   * 设置群组成员角色（给用户添加标签）
+   * @param guildId 群组ID
+   * @param userId 用户ID
+   * @param roleId 角色ID（标签名称）
+   */
+  async setGuildMemberRole(guildId: string, userId: string, roleId: string): Promise<void>
+  {
+    const payload = {
+      groupId: guildId,
+      userId: userId,
+      tag: roleId
+    };
+
+    const response = await this.bot.http.post(`/group/tag/user-relate?token=${this.token}`, payload);
+
+    if (response.code !== 1)
+    {
+      throw new Error(`设置群组成员角色失败: ${response.msg}`);
+    }
+  }
+
+  /**
+   * 取消群组成员角色（移除用户标签）
+   * @param guildId 群组ID
+   * @param userId 用户ID
+   * @param roleId 角色ID（标签名称）
+   */
+  async unsetGuildMemberRole(guildId: string, userId: string, roleId: string): Promise<void>
+  {
+    const payload = {
+      groupId: guildId,
+      userId: userId,
+      tag: roleId
+    };
+
+    const response = await this.bot.http.post(`/group/tag/user-relate-cancel?token=${this.token}`, payload);
+
+    if (response.code !== 1)
+    {
+      throw new Error(`取消群组成员角色失败: ${response.msg}`);
+    }
+  }
+
+  /**
+   * 获取群组角色列表（获取群标签列表）
+   * @param guildId 群组ID
+   * @param next 分页令牌（暂不支持）
+   */
+  async getGuildRoleList(guildId: string, next?: string): Promise<Universal.List<Universal.GuildRole>>
+  {
+    const payload = {
+      groupId: guildId
+    };
+
+    const response = await this.bot.http.post(`/group/tag/list?token=${this.token}`, payload);
+
+    if (response.code !== 1)
+    {
+      throw new Error(`获取群组角色列表失败: ${response.msg}`);
+    }
+
+    const roles: Universal.GuildRole[] = (response.data?.list || []).map((tag: Types.GuildTag) => ({
+      id: tag.tag,
+      name: tag.tag
+    }));
+
+    return {
+      data: roles,
+      next: undefined
+    };
+  }
+
+  /**
+   * 创建群组角色（创建标签）
+   * @param guildId 群组ID
+   * @param data 角色数据
+   */
+  async createGuildRole(guildId: string, data: Partial<Universal.GuildRole>): Promise<Universal.GuildRole>
+  {
+    const payload = {
+      groupId: guildId,
+      tag: data.name || data.id,
+      color: '#FF5733',
+      desc: '通过API创建的标签',
+      sort: 1
+    };
+
+    const response = await this.bot.http.post(`/group/tag/create?token=${this.token}`, payload);
+
+    if (response.code !== 1)
+    {
+      throw new Error(`创建群组角色失败: ${response.msg}`);
+    }
+
+    const role: Universal.GuildRole = {
+      id: payload.tag,
+      name: payload.tag
+    };
+
+    return role;
+  }
+
+  /**
+   * 修改群组角色（修改标签）
+   * @param guildId 群组ID
+   * @param roleId 角色ID（标签名称）
+   * @param data 角色数据
+   */
+  async updateGuildRole(guildId: string, roleId: string, data: Partial<Universal.GuildRole>): Promise<void>
+  {
+    const payload: Dict = {
+      groupId: guildId,
+      tag: roleId
+    };
+
+    if (data.name && data.name !== roleId)
+    {
+      payload.newTag = data.name;
+    }
+
+    const response = await this.bot.http.post(`/group/tag/edit?token=${this.token}`, payload);
+
+    if (response.code !== 1)
+    {
+      throw new Error(`修改群组角色失败: ${response.msg}`);
+    }
+  }
+
+  /**
+   * 删除群组角色（删除标签）
+   * @param guildId 群组ID
+   * @param roleId 角色ID（标签名称）
+   */
+  async deleteGuildRole(guildId: string, roleId: string): Promise<void>
+  {
+    const payload = {
+      groupId: guildId,
+      tag: roleId
+    };
+
+    const response = await this.bot.http.post(`/group/tag/delete?token=${this.token}`, payload);
+
+    if (response.code !== 1)
+    {
+      throw new Error(`删除群组角色失败: ${response.msg}`);
+    }
+  }
 }

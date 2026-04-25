@@ -122,6 +122,54 @@ export class YunhuBot extends Bot<Context, Config>
     await this.internal.editMessage(payload);
   }
 
+  // 禁言群成员
+  async muteGuildMember(guildId: string, userId: string, duration: number, reason?: string): Promise<void>
+  {
+    await this.internal.muteGuildMember(guildId, userId, duration);
+  }
+
+  // 踢出群成员
+  async kickGuildMember(guildId: string, userId: string, permanent?: boolean): Promise<void>
+  {
+    await this.internal.kickGuildMember(guildId, userId);
+  }
+
+  // 设置群组成员角色
+  async setGuildMemberRole(guildId: string, userId: string, roleId: string): Promise<void>
+  {
+    await this.internal.setGuildMemberRole(guildId, userId, roleId);
+  }
+
+  // 取消群组成员角色
+  async unsetGuildMemberRole(guildId: string, userId: string, roleId: string): Promise<void>
+  {
+    await this.internal.unsetGuildMemberRole(guildId, userId, roleId);
+  }
+
+  // 获取群组角色列表
+  async getGuildRoleList(guildId: string, next?: string): Promise<Universal.List<Universal.GuildRole>>
+  {
+    return this.internal.getGuildRoleList(guildId, next);
+  }
+
+  // 创建群组角色
+  async createGuildRole(guildId: string, data: Partial<Universal.GuildRole>): Promise<Universal.GuildRole>
+  {
+    return this.internal.createGuildRole(guildId, data);
+  }
+
+  // 修改群组角色
+  async updateGuildRole(guildId: string, roleId: string, data: Partial<Universal.GuildRole>): Promise<void>
+  {
+    await this.internal.updateGuildRole(guildId, roleId, data);
+  }
+
+  // 删除群组角色
+  async deleteGuildRole(guildId: string, roleId: string): Promise<void>
+  {
+    await this.internal.deleteGuildRole(guildId, roleId);
+  }
+
   logInfo(...args: any[])
   {
     if (this.config.loggerinfo)

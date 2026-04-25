@@ -148,7 +148,7 @@ export interface Content
   buttons?: Button[];     // 所有类型都可能有
   at?: string[];          // @的用户ID数组
   parentId?: string;      // 回复消息的 ID
-  parent?: string;        // 回复消息的 
+  parent?: string;        // 回复消息的
   parentImgName?: string; // 回复消息的图片名称
   parentVideoUrl?: string; // 回复消息的视频链接
   parentFileName?: string; // 回复消息的文件名称
@@ -331,4 +331,20 @@ export class SizeLimitError extends Error
     super(message);
     this.name = 'SizeLimitError';
   }
+}
+
+// 群组角色类型定义
+export interface GuildRole
+{
+  id: string;
+  name: string;
+}
+
+// 群标签类型定义
+export interface GuildTag
+{
+  tag: string;
+  desc?: string;
+  color?: string;
+  sort?: number;
 }
