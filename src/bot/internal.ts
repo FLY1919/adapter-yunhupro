@@ -485,6 +485,19 @@ export class Internal
     {
       throw new Error(`设置群组成员角色失败: ${response.msg}`);
     }
+
+    // 触发 guild-role-created 事件
+    const session = this.bot.session();
+    session.type = 'guild-role-created';
+    session.platform = 'yunhu';
+    session.selfId = this.bot.selfId;
+    session.guildId = guildId;
+    session.userId = userId;
+    session.event.role = {
+      id: roleId,
+      name: roleId
+    };
+    this.bot.dispatch(session);
   }
 
   /**
@@ -507,6 +520,19 @@ export class Internal
     {
       throw new Error(`取消群组成员角色失败: ${response.msg}`);
     }
+
+    // 触发 guild-role-deleted 事件
+    const session = this.bot.session();
+    session.type = 'guild-role-deleted';
+    session.platform = 'yunhu';
+    session.selfId = this.bot.selfId;
+    session.guildId = guildId;
+    session.userId = userId;
+    session.event.role = {
+      id: roleId,
+      name: roleId
+    };
+    this.bot.dispatch(session);
   }
 
   /**
@@ -565,6 +591,15 @@ export class Internal
       name: payload.tag
     };
 
+    // 触发 guild-role-created 事件
+    const session = this.bot.session();
+    session.type = 'guild-role-created';
+    session.platform = 'yunhu';
+    session.selfId = this.bot.selfId;
+    session.guildId = guildId;
+    session.event.role = role;
+    this.bot.dispatch(session);
+
     return role;
   }
 
@@ -592,6 +627,18 @@ export class Internal
     {
       throw new Error(`修改群组角色失败: ${response.msg}`);
     }
+
+    // 触发 guild-role-updated 事件
+    const session = this.bot.session();
+    session.type = 'guild-role-updated';
+    session.platform = 'yunhu';
+    session.selfId = this.bot.selfId;
+    session.guildId = guildId;
+    session.event.role = {
+      id: data.name || roleId,
+      name: data.name || roleId
+    };
+    this.bot.dispatch(session);
   }
 
   /**
@@ -612,5 +659,17 @@ export class Internal
     {
       throw new Error(`删除群组角色失败: ${response.msg}`);
     }
+
+    // 触发 guild-role-deleted 事件
+    const session = this.bot.session();
+    session.type = 'guild-role-deleted';
+    session.platform = 'yunhu';
+    session.selfId = this.bot.selfId;
+    session.guildId = guildId;
+    session.event.role = {
+      id: roleId,
+      name: roleId
+    };
+    this.bot.dispatch(session);
   }
 }
