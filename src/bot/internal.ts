@@ -6,10 +6,10 @@ import { FormatType, clearMsg, getImageAsBase64 } from '../utils/utils';
 import * as Types from '../utils/types';
 import { YunhuBot } from './bot';
 
-import { ImageUploader } from '../internal/ImageUploader';
-import { VideoUploader } from '../internal/VideoUploader';
-import { FileUploader } from '../internal/FileUploader';
-import { AudioUploader } from '../internal/AudioUploader';
+import { ImageUploader } from '../uploader/ImageUploader';
+import { VideoUploader } from '../uploader/VideoUploader';
+import { FileUploader } from '../uploader/FileUploader';
+import { AudioUploader } from '../uploader/AudioUploader';
 
 export class Internal
 {
