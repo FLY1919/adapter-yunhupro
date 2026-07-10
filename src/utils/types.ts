@@ -133,7 +133,7 @@ export interface Message
   sendTime: number; // 毫秒级时间戳
   chatId: string;
   chatType: 'group' | 'bot';
-  contentType: 'text' | 'image' | 'markdown' | 'file' | 'form' | 'tip';
+  contentType: 'text' | 'image' | 'markdown' | 'file' | 'form' | 'tip' | 'video' | 'audio' | 'html' | 'post' | 'expression' | 'live_video' | 'live_audio' | 'live_share' | 'live_end' | 'live_start' | 'live_pause' | 'live_resume' | 'live_stop' | 'live_seek' | 'live_seek_end' | 'live_seek_start' | 'live_seek_pause' | 'live_seek_resume' | 'live_seek_stop' | 'live_seek_end_pause' | 'live_seek_end_resume';
   content: Content;
   commandId?: number;
   commandName?: string;
@@ -144,7 +144,13 @@ export interface Content
   text?: string;          // contentType 为 text 或 markdown 时使用
   imageUrl?: string;      // contentType 为 image 时使用（替换 imageKey）
   fileKey?: string;       // contentType 为 file 时使用
-  videoKey?: string;      // contentType 为 video 时使用
+  fileName?: string;      // contentType 为 file 时使用
+  fileSize?: number;      // contentType 为 file 时使用
+  fileUrl?: string;      // contentType 为 file 时使用
+  videoUrl?: string;      // contentType 为 video 时使用
+  videoDuration?: number; // contentType 为 video 时使用
+  audioUrl?: string;      // contentType 为 audio 时使用
+  audioDuration?: number; // contentType 为 audio 时使用
   buttons?: Button[];     // 所有类型都可能有
   at?: string[];          // @的用户ID数组
   parentId?: string;      // 回复消息的 ID
@@ -185,6 +191,7 @@ export interface Sender
   senderType: 'user';
   senderUserLevel: 'owner' | 'administrator' | 'member' | 'unknown';
   senderNickname: string;
+  senderAvatarUrl: string;
 }
 
 // 基础消息事件

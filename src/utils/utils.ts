@@ -7,6 +7,7 @@ import { logger } from '..';
 import { writeFileSync, readFileSync, unlinkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { title } from 'node:process';
 
 export * from './types';
 
@@ -88,22 +89,28 @@ export async function clearMsg(bot: YunhuBot, message: Yunhu.Message, sender: Yu
   // 处理其他媒体内容
   if (message.content.imageUrl)
   {
-    textContent += h.image(message.content.imageUrl).toString();
+    textContent += h.image(message.content.imageUrl, { title: message.content.imageName, width: message.content.imageWidth, height: message.content.imageHeight }).toString();
   } else if (message.content.imageName)
   {
     textContent += h.image(bot.config.resourceEndpoint + message.content.imageName).toString();
   }
-
-  if (message.content.fileKey)
+  if (message.content.fileUrl)
+  {
+    textContent += h('file', { src: message.content.fileUrl, title: message.content.fileName }).toString();
+  } else if (message.content.fileKey)
   {
     textContent += h('file', { src: message.content.fileKey }).toString();
   }
 
-  if (message.content.videoKey)
+  if (message.content.videoUrl)
   {
-    textContent += h('video', { src: message.content.videoKey }).toString();
+    textContent += h('video', { src: message.content.videoUrl, duration: message.content.videoDuration }).toString();
   }
 
+  if (message.content.audioUrl)
+  {
+    textContent += h('audio', { src: message.content.audioUrl, duration: message.content.audioDuration }).toString();
+  }
   return textContent;
 }
 
@@ -131,6 +138,7 @@ export async function adaptSession(bot: YunhuBot, input: Yunhu.YunhuEvent)
           user: {
             id: sender.senderId,
             name: sender.senderNickname,
+            avatar: sender.senderAvatarUrl
           },
           message: {
             id: message.msgId,
@@ -196,6 +204,7 @@ export async function adaptSession(bot: YunhuBot, input: Yunhu.YunhuEvent)
         bot.dispatch(interactionSession);
       }
 
+
       const sessionPayload = {
         type: 'message' as const,
         platform: 'yunhu',
@@ -203,10 +212,12 @@ export async function adaptSession(bot: YunhuBot, input: Yunhu.YunhuEvent)
         timestamp: message.sendTime,
         member: {
           roles: [{ id: sender.senderUserLevel, name: sender.senderUserLevel }],
+          avatar: sender.senderAvatarUrl,
         },
         user: {
           id: sender.senderId,
           name: sender.senderNickname,
+          avatar: sender.senderAvatarUrl,
         },
         message: {
           id: message.msgId,
@@ -233,6 +244,7 @@ export async function adaptSession(bot: YunhuBot, input: Yunhu.YunhuEvent)
         session.event.member = {
           user: sessionPayload.user,
           name: sessionPayload.user.name,
+          avatar: sessionPayload.user.avatar,
         };
       }
 
@@ -316,6 +328,7 @@ export async function adaptSession(bot: YunhuBot, input: Yunhu.YunhuEvent)
           const event = input.event as Yunhu.BotStatusEvent;
           session.userId = event.userId;
           session.event.user.name = event.nickname;
+          session.event.user.avatar = event.avatarUrl;
           break;
         }
         // 用户加入群聊事件
@@ -324,6 +337,7 @@ export async function adaptSession(bot: YunhuBot, input: Yunhu.YunhuEvent)
           session.type = 'guild-member-added';
           session.userId = event.userId;
           session.event.user.name = event.nickname;
+          session.event.user.avatar = event.avatarUrl;
           session.guildId = event.chatId;
           session.operatorId = event.userId; // 载荷中没有操作者，假定是自己加入
           break;
@@ -334,6 +348,7 @@ export async function adaptSession(bot: YunhuBot, input: Yunhu.YunhuEvent)
           session.type = 'guild-member-removed';
           session.userId = event.userId;
           session.event.user.name = event.nickname;
+          session.event.user.avatar = event.avatarUrl;
           session.guildId = event.chatId;
           session.operatorId = event.userId; // 载荷中没有操作者，假定是自己退出
           session.subtype = 'leave';

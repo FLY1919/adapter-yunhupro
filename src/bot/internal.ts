@@ -304,6 +304,7 @@ export class Internal
       const sender: Types.Sender = {
         senderId: msg.senderId,
         senderNickname: msg.senderNickname,
+        senderAvatarUrl: void 0, // 这里没有提供头像URL，可能需要额外的API调用来获取
         //  下面两个属性无实际作用，仅用于内部处理。
         senderType: msg.senderType as 'user',
         senderUserLevel: 'unknown',
@@ -341,18 +342,27 @@ export class Internal
     return this.bot.http.post(`/bot/board?token=${this.token}`, payload);
   }
 
+
+  /**
+   * 设置全局公告
+   * @param contentType 公告内容类型
+   * @param content 公告内容
+   * @param options 可选参数，包括过期时间等
+   */
   async setAllBoard(
-    chatId: string,
+    // chatId: string, //文档内没该字段
     contentType: FormatType,
     content: string,
     options: { expireTime?: number; } = {}
   )
   {
+    /*
     const chatType = chatId.split(':')[1];
     const Id = chatId.split(':')[0];
+    */
     const payload = {
-      Id,
-      chatType,
+      //Id,
+      //chatType,
       contentType,
       content,
       ...options
