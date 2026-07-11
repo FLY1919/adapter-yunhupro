@@ -1,13 +1,14 @@
-import { h, Universal, Context, Session, Bot } from 'koishi';
+﻿import { h, Universal, Context, Session, Bot } from 'koishi';
 import { yunhuEmojiMap } from './emoji';
-import { YunhuBot } from '../bot/bot';
+import type { YunhuBot } from '../bot/bot';
 import * as Yunhu from './types';
 import { logger } from '..';
 
+import { createHash } from 'node:crypto';
 import { writeFileSync, readFileSync, unlinkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { title } from 'node:process';
+import { Readable } from 'node:stream';
 
 export * from './types';
 
@@ -29,6 +30,197 @@ function decodeYunhuEmoji(text: string): string
   return text.replace(/\[\..+?\]/g, (match) =>
   {
     return yunhuEmojiMap.get(match) || match;
+  });
+}
+
+type MediaProxyType = 'audio' | 'image' | 'video' | 'file';
+
+interface MediaProxyPayload
+{
+  type: MediaProxyType;
+  urls: string[];
+}
+
+const MEDIA_PROXY_ROUTE = '/yunhu/media/:token';
+const MEDIA_PROXY_TTL = 60 * 60 * 1000;
+const MEDIA_PROXY_REFERER = 'http://myapp.jwznb.com';
+const MEDIA_PROXY_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36';
+const mediaProxyRegistry = new Map<string, MediaProxyPayload>();
+
+function isHttpUrl(url: string): boolean
+{
+  return /^https?:\/\//i.test(url);
+}
+
+function uniqueStrings(items: string[]): string[]
+{
+  return [...new Set(items.filter(Boolean))];
+}
+
+function normalizeBaseUrl(baseUrl: string): string
+{
+  return baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`;
+}
+
+function buildMirrorCandidates(url: string, type: MediaProxyType, bot: YunhuBot): string[]
+{
+  if (!isHttpUrl(url)) return [url];
+
+  const candidates = [url];
+  const parsed = new URL(url);
+  const suffix = `${parsed.pathname}${parsed.search}${parsed.hash}`;
+  const endpoints: Array<string | undefined> = [];
+
+  switch (type)
+  {
+    case 'image':
+      endpoints.push(bot.config.resourceEndpoint, bot.config.resourceWebpEndpoint);
+      break;
+    case 'audio':
+      endpoints.push(bot.config.resourceAudioEndpoint, bot.config.resourceEndpoint);
+      break;
+    case 'video':
+      endpoints.push(bot.config.resourceVideoEndpoint, bot.config.resourceEndpoint);
+      break;
+    default:
+      endpoints.push(bot.config.resourceEndpoint);
+      break;
+  }
+
+  for (const endpoint of endpoints)
+  {
+    if (!endpoint) continue;
+    candidates.push(new URL(suffix, normalizeBaseUrl(endpoint)).toString());
+  }
+
+  return uniqueStrings(candidates);
+}
+
+function buildMediaProxyPayload(url: string, type: MediaProxyType, bot: YunhuBot): MediaProxyPayload
+{
+  return {
+    type,
+    urls: buildMirrorCandidates(url, type, bot),
+  };
+}
+
+function registerMediaProxyEntry(ctx: Context, payload: MediaProxyPayload): string
+{
+  const token = createHash('sha1').update(JSON.stringify(payload)).digest('hex');
+  mediaProxyRegistry.set(token, payload);
+  ctx.setTimeout(() =>
+  {
+    mediaProxyRegistry.delete(token);
+  }, MEDIA_PROXY_TTL);
+  return token;
+}
+
+function getServerSelfUrl(ctx: Context): string | undefined
+{
+  const server = ctx.server as {
+    config?: {
+      selfUrl?: string;
+    };
+  };
+  return server.config?.selfUrl?.trim() || undefined;
+}
+
+function getMediaProxyPublicUrl(ctx: Context, token: string): string
+{
+  const pathname = `/yunhu/media/${token}`;
+  const selfUrl = getServerSelfUrl(ctx);
+  if (!selfUrl) return pathname;
+  return new URL(pathname, normalizeBaseUrl(selfUrl)).toString();
+}
+
+export function getMediaProxyUrl(url: string, type: MediaProxyType, bot: YunhuBot): string
+{
+  const token = registerMediaProxyEntry(bot.ctx, buildMediaProxyPayload(url, type, bot));
+  return getMediaProxyPublicUrl(bot.ctx, token);
+}
+
+export function registerMediaProxyRoute(ctx: Context)
+{
+  ctx.on('dispose', () =>
+  {
+    mediaProxyRegistry.clear();
+  });
+
+  ctx.server.get(MEDIA_PROXY_ROUTE, async (koaCtx) =>
+  {
+    const token = koaCtx.params.token;
+    const payload = mediaProxyRegistry.get(token);
+
+    if (!payload)
+    {
+      koaCtx.status = 404;
+      koaCtx.body = 'media proxy expired';
+      return;
+    }
+
+    const requests = payload.urls.map(async (candidate) =>
+    {
+      const response = await fetch(candidate, {
+        method: 'GET',
+        headers: {
+          referer: MEDIA_PROXY_REFERER,
+          'user-agent': MEDIA_PROXY_USER_AGENT,
+        },
+      });
+
+      if (!response.ok)
+      {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      return response;
+    });
+
+    let response: Response | undefined;
+    await new Promise<void>((resolve) =>
+    {
+      let pending = requests.length;
+      let settled = false;
+
+      for (const request of requests)
+      {
+        request.then((value) =>
+        {
+          if (settled) return;
+          settled = true;
+          response = value;
+          resolve();
+        }).catch(() =>
+        {
+          pending -= 1;
+          if (pending <= 0 && !settled)
+          {
+            resolve();
+          }
+        });
+      }
+    });
+
+    if (!response)
+    {
+      koaCtx.status = 502;
+      koaCtx.body = 'failed to proxy media';
+      return;
+    }
+
+    const contentType = response.headers.get('content-type');
+    const contentLength = response.headers.get('content-length');
+    const contentDisposition = response.headers.get('content-disposition');
+    const cacheControl = response.headers.get('cache-control');
+    const acceptRanges = response.headers.get('accept-ranges');
+
+    koaCtx.status = response.status;
+    if (contentType) koaCtx.type = contentType;
+    if (contentLength) koaCtx.set('content-length', contentLength);
+    if (contentDisposition) koaCtx.set('content-disposition', contentDisposition);
+    if (cacheControl) koaCtx.set('cache-control', cacheControl);
+    if (acceptRanges) koaCtx.set('accept-ranges', acceptRanges);
+    koaCtx.body = response.body ? Readable.fromWeb(response.body) : undefined;
   });
 }
 
@@ -92,11 +284,11 @@ export async function clearMsg(bot: YunhuBot, message: Yunhu.Message, sender: Yu
     textContent += h.image(message.content.imageUrl, { title: message.content.imageName, width: message.content.imageWidth, height: message.content.imageHeight }).toString();
   } else if (message.content.imageName)
   {
-    textContent += h.image(bot.config.resourceEndpoint + message.content.imageName).toString();
+    textContent += h.image(getMediaProxyUrl(bot.config.resourceEndpoint + message.content.imageName, 'image', bot)).toString();
   }
   if (message.content.fileUrl)
   {
-    textContent += h('file', { src: message.content.fileUrl, title: message.content.fileName }).toString();
+    textContent += h('file', { src: getMediaProxyUrl(message.content.fileUrl, 'file', bot), title: message.content.fileName }).toString();
   } else if (message.content.fileKey)
   {
     textContent += h('file', { src: message.content.fileKey }).toString();
@@ -105,12 +297,12 @@ export async function clearMsg(bot: YunhuBot, message: Yunhu.Message, sender: Yu
   if (message.content.videoUrl)
   {
     textContent += h('video', {
-      src: await getSomeAsBase64(
-        bot.config.resourceVideoEndpoint + message.content.audioUrl,
+      src: getMediaProxyUrl(
+        bot.config.resourceVideoEndpoint + message.content.videoUrl,
         'video',
         bot,
       ),
-      duration: message.content.audioDuration
+      duration: message.content.videoDuration
     }
     ).toString();
   }
@@ -119,7 +311,7 @@ export async function clearMsg(bot: YunhuBot, message: Yunhu.Message, sender: Yu
   {
     textContent += h('audio',
       {
-        src: await getSomeAsBase64(
+        src: getMediaProxyUrl(
           bot.config.resourceAudioEndpoint + message.content.audioUrl,
           'audio',
           bot,
@@ -155,7 +347,7 @@ export async function adaptSession(bot: YunhuBot, input: Yunhu.YunhuEvent)
           user: {
             id: sender.senderId,
             name: sender.senderNickname,
-            avatar: await getSomeAsBase64(sender.senderAvatarUrl, 'image', bot),
+            avatar: getMediaProxyUrl(sender.senderAvatarUrl, 'image', bot),
           },
           message: {
             id: message.msgId,
@@ -229,12 +421,12 @@ export async function adaptSession(bot: YunhuBot, input: Yunhu.YunhuEvent)
         timestamp: message.sendTime,
         member: {
           roles: [{ id: sender.senderUserLevel, name: sender.senderUserLevel }],
-          avatar: await getSomeAsBase64(sender.senderAvatarUrl, 'image', bot),
+          avatar: getMediaProxyUrl(sender.senderAvatarUrl, 'image', bot),
         },
         user: {
           id: sender.senderId,
           name: sender.senderNickname,
-          avatar: await getSomeAsBase64(sender.senderAvatarUrl, 'image', bot),
+          avatar: getMediaProxyUrl(sender.senderAvatarUrl, 'image', bot),
         },
         message: {
           id: message.msgId,
@@ -261,7 +453,7 @@ export async function adaptSession(bot: YunhuBot, input: Yunhu.YunhuEvent)
         session.event.member = {
           user: sessionPayload.user,
           name: sessionPayload.user.name,
-          avatar: await getSomeAsBase64(sessionPayload.user.avatar, 'image', bot),
+          avatar: getMediaProxyUrl(sessionPayload.user.avatar, 'image', bot),
         };
       }
 
@@ -288,8 +480,7 @@ export async function adaptSession(bot: YunhuBot, input: Yunhu.YunhuEvent)
             try
             {
               const imageUrl = bot.config.resourceEndpoint + message.content.parentImgName;
-              const base64 = await getSomeAsBase64(imageUrl, 'image', bot);
-              const imageElement = h.image(base64);
+              const imageElement = h.image(getMediaProxyUrl(imageUrl, 'image', bot));
               quote.content = imageElement.toString();
               quote.elements = [imageElement];
             } catch (error)
@@ -403,46 +594,6 @@ export async function adaptSession(bot: YunhuBot, input: Yunhu.YunhuEvent)
     }
   }
 }
-
-/**
- * 获取文件并转换为Base64
- * @param url 文件URL
- * @param botHttp Bot HTTP 实例
- * @returns Base64 格式的文件
- */
-export async function getSomeAsBase64(url: string, type: 'audio' | 'image' | 'video', bot: { ctx: Context; }): Promise<string>
-{
-  try
-  {
-    // 设置请求头，包括Referer
-    const httpClient = bot.ctx.http.extend({
-      headers: {
-        'referer': 'http://myapp.jwznb.com',
-        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-      }
-    });
-    const { data, type } = await httpClient.file(url);
-    const Type = type.split('/')[0].trim();
-
-    if (!type || !(['audio', 'image', 'video'].includes(Type)))
-    {
-      throw new Error('响应不是有效的类型');
-    }
-
-
-
-    // 将Buffer转换为Base64
-    const base64 = Buffer.from(data).toString('base64');
-
-    // 返回Data URL格式
-    return `data:${type};base64,${base64}`;
-  } catch (error)
-  {
-    logger.error(`无法获取文件: ${url}, 错误: ${error.message}`);
-    return url;
-  }
-}
-
 
 /**
  * 将 rgba 颜色字符串转换为 ffmpeg 使用的 0xRRGGBB 格式

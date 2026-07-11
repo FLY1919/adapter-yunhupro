@@ -6,7 +6,7 @@ import { } from '@koishijs/plugin-console';
 import { promises as fs } from 'node:fs';
 import * as path from 'node:path';
 
-import { adaptSession } from './utils/utils';
+import { adaptSession, registerMediaProxyRoute } from './utils/utils';
 import * as Yunhu from './utils/types';
 import { YunhuBot } from './bot/bot';
 import { YunhuWebSocket } from './bot/websocket';
@@ -56,6 +56,8 @@ export function apply(ctx: Context, config: Config)
         });
       });
     }
+
+    registerMediaProxyRoute(ctx);
 
     // 创建机器人实例
     bot = new YunhuBot(ctx, config);

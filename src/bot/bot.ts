@@ -1,4 +1,4 @@
-import { getSomeAsBase64 } from '../utils/utils';
+import { getMediaProxyUrl } from '../utils/utils';
 import { Bot, Context, Fragment, Logger, Universal } from 'koishi';
 import { SendOptions } from '@satorijs/protocol';
 import { Config } from '../config';
@@ -206,7 +206,7 @@ export class YunhuBot extends Bot<Context, Config>
       if (botInfo.code === 1)
       {
         this.user.name = botInfo.data.bot.nickname;
-        this.user.avatar = await getSomeAsBase64(botInfo.data.bot.avatarUrl, 'image', this);
+        this.user.avatar = getMediaProxyUrl(botInfo.data.bot.avatarUrl, 'image', this);
         this.selfId = botInfo.data.bot.botId;
       }
       await super.start();
