@@ -2,7 +2,8 @@ import { Dict, Universal } from 'koishi';
 
 import { Readable } from 'node:stream';
 
-import { FormatType, clearMsg, getMediaProxyUrl } from '../utils/utils';
+import { FormatType, clearMsg } from '../utils/utils';
+import { getMediaProxyUrl } from '../utils/media-proxy';
 import * as Types from '../utils/types';
 import { YunhuBot } from './bot';
 

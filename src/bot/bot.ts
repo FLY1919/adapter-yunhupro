@@ -1,4 +1,3 @@
-import { getMediaProxyUrl } from '../utils/utils';
 import { Bot, Context, Fragment, Logger, Universal } from 'koishi';
 import { SendOptions } from '@satorijs/protocol';
 import { Config } from '../config';
@@ -6,6 +5,7 @@ import { YunhuMessageEncoder } from './message';
 import { fragmentToPayload } from './message';
 import { Internal } from './internal';
 import { BotHttp } from './http';
+import { getMediaProxyUrl } from '../utils/media-proxy';
 
 const logger = new Logger('adapter-yunhupro');
 
