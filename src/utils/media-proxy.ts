@@ -29,8 +29,10 @@ function getServerSelfUrl(ctx: Context): string | undefined {
 function getServerBaseUrl(ctx: Context): string {
   const selfUrl = getServerSelfUrl(ctx);
   if (selfUrl) return selfUrl;
+  const host = (ctx.server.host || '').trim();
   const port = ctx.server.port || 5140;
-  return `http://127.0.0.1:${port}`;
+  const normalizedHost = !host || host === '0.0.0.0' || host === '::' ? 'localhost' : host;
+  return `http://${normalizedHost}:${port}`;
 }
 
 function normalizeBaseUrl(baseUrl: string): string {
