@@ -53,8 +53,8 @@
     "ws": "^8.18.0"
   },
   "peerDependencies": {
-    "@koishijs/plugin-server": "^3.2.7",
     "@koishijs/plugin-console": "^5.11.0",
+    "@koishijs/plugin-server": "^3.2.7",
     "koishi": "^4.18.8"
   },
   "devDependencies": {
