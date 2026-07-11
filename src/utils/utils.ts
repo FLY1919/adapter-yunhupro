@@ -1,4 +1,4 @@
-import { h, Universal, Context, Session } from 'koishi';
+import { h, Universal, Context, Session, Bot } from 'koishi';
 import { yunhuEmojiMap } from './emoji';
 import { YunhuBot } from '../bot/bot';
 import * as Yunhu from './types';
@@ -104,12 +104,29 @@ export async function clearMsg(bot: YunhuBot, message: Yunhu.Message, sender: Yu
 
   if (message.content.videoUrl)
   {
-    textContent += h('video', { src: message.content.videoUrl, duration: message.content.videoDuration }).toString();
+    textContent += h('video', {
+      src: await getSomeAsBase64(
+        bot.config.resourceVideoEndpoint + message.content.audioUrl,
+        'video',
+        bot,
+      ),
+      duration: message.content.audioDuration
+    }
+    ).toString();
   }
 
   if (message.content.audioUrl)
   {
-    textContent += h('audio', { src: message.content.audioUrl, duration: message.content.audioDuration }).toString();
+    textContent += h('audio',
+      {
+        src: await getSomeAsBase64(
+          bot.config.resourceAudioEndpoint + message.content.audioUrl,
+          'audio',
+          bot,
+        ),
+        duration: message.content.audioDuration
+      }
+    ).toString();
   }
   return textContent;
 }
@@ -138,7 +155,7 @@ export async function adaptSession(bot: YunhuBot, input: Yunhu.YunhuEvent)
           user: {
             id: sender.senderId,
             name: sender.senderNickname,
-            avatar: sender.senderAvatarUrl
+            avatar: await getSomeAsBase64(sender.senderAvatarUrl, 'image', bot),
           },
           message: {
             id: message.msgId,
@@ -212,12 +229,12 @@ export async function adaptSession(bot: YunhuBot, input: Yunhu.YunhuEvent)
         timestamp: message.sendTime,
         member: {
           roles: [{ id: sender.senderUserLevel, name: sender.senderUserLevel }],
-          avatar: sender.senderAvatarUrl,
+          avatar: await getSomeAsBase64(sender.senderAvatarUrl, 'image', bot),
         },
         user: {
           id: sender.senderId,
           name: sender.senderNickname,
-          avatar: sender.senderAvatarUrl,
+          avatar: await getSomeAsBase64(sender.senderAvatarUrl, 'image', bot),
         },
         message: {
           id: message.msgId,
@@ -244,7 +261,7 @@ export async function adaptSession(bot: YunhuBot, input: Yunhu.YunhuEvent)
         session.event.member = {
           user: sessionPayload.user,
           name: sessionPayload.user.name,
-          avatar: sessionPayload.user.avatar,
+          avatar: await getSomeAsBase64(sessionPayload.user.avatar, 'image', bot),
         };
       }
 
@@ -271,7 +288,7 @@ export async function adaptSession(bot: YunhuBot, input: Yunhu.YunhuEvent)
             try
             {
               const imageUrl = bot.config.resourceEndpoint + message.content.parentImgName;
-              const base64 = await getImageAsBase64(imageUrl, bot);
+              const base64 = await getSomeAsBase64(imageUrl, 'image', bot);
               const imageElement = h.image(base64);
               quote.content = imageElement.toString();
               quote.elements = [imageElement];
@@ -388,28 +405,31 @@ export async function adaptSession(bot: YunhuBot, input: Yunhu.YunhuEvent)
 }
 
 /**
- * 获取图片并转换为Base64
- * @param url 图片URL
+ * 获取文件并转换为Base64
+ * @param url 文件URL
  * @param botHttp Bot HTTP 实例
- * @returns Base64 格式的图片
+ * @returns Base64 格式的文件
  */
-export async function getImageAsBase64(url: string, bot: { ctx: Context; }): Promise<string>
+export async function getSomeAsBase64(url: string, type: 'audio' | 'image' | 'video', bot: { ctx: Context; }): Promise<string>
 {
   try
   {
     // 设置请求头，包括Referer
     const httpClient = bot.ctx.http.extend({
       headers: {
-        'referer': 'https://yhfx.jwznb.com/',
+        'referer': 'http://myapp.jwznb.com',
         'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
       }
     });
     const { data, type } = await httpClient.file(url);
+    const Type = type.split('/')[0].trim();
 
-    if (!type || !type.startsWith('image/'))
+    if (!type || !(['audio', 'image', 'video'].includes(Type)))
     {
-      throw new Error('响应不是有效的图片类型');
+      throw new Error('响应不是有效的类型');
     }
+
+
 
     // 将Buffer转换为Base64
     const base64 = Buffer.from(data).toString('base64');
@@ -418,10 +438,11 @@ export async function getImageAsBase64(url: string, bot: { ctx: Context; }): Pro
     return `data:${type};base64,${base64}`;
   } catch (error)
   {
-    logger.error(`无法获取图片: ${url}, 错误: ${error.message}`);
+    logger.error(`无法获取文件: ${url}, 错误: ${error.message}`);
     return url;
   }
 }
+
 
 /**
  * 将 rgba 颜色字符串转换为 ffmpeg 使用的 0xRRGGBB 格式

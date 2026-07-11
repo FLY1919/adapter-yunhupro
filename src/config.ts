@@ -9,6 +9,9 @@ export interface Config
   endpoint?: string;
   endpointweb?: string;
   resourceEndpoint?: string;
+  resourceWebpEndpoint?: string;
+  resourceAudioEndpoint?: string;
+  resourceVideoEndpoint?: string;
   loggerinfo: boolean;
   audioBackgroundColor?: string;
   showConsole?: boolean;
@@ -111,6 +114,19 @@ export const Config: Schema<Config> =
         .default('https://chat-img.jwznb.com/')
         .description('资源服务器地址')
         .role('link'),
+      resourceWebpEndpoint: Schema.string()
+        .default('https://chat-img3.jwznb.com/')
+        .description('资源webp服务器地址')
+        .role('link'),
+      resourceAudioEndpoint: Schema.string()
+        .default('https://chat-audio1.jwznb.com/')
+        .description('资源audio服务器地址')
+        .role('link'),
+      resourceVideoEndpoint: Schema.string()
+        .default('https://chat-video1.jwznb.com/')
+        .description('资源video服务器地址')
+        .role('link'),
+
     }).description('连接设置'),
 
     Schema.object({
