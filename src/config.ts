@@ -9,7 +9,7 @@ export interface Config
   endpoint?: string;
   endpointweb?: string;
   resourceEndpoint?: string;
-  resourceWebpEndpoint?: string;
+  // resourceWebpEndpoint?: string;
   resourceAudioEndpoint?: string;
   resourceVideoEndpoint?: string;
   loggerinfo: boolean;
@@ -104,30 +104,29 @@ export const Config: Schema<Config> =
     Schema.object({
       endpoint: Schema.string()
         .default('https://chat-go.jwzhd.com/open-apis/v1')
-        .description('云湖 API 地址')
+        .description('接口 API 请求地址')
         .role('link'),
       endpointweb: Schema.string()
         .default('https://chat-web-go.jwzhd.com/v1')
-        .description('云湖 web API 地址')
+        .description('网页 API 请求地址')
         .role('link'),
       resourceEndpoint: Schema.string()
         .default('https://chat-img.jwznb.com/')
-        .description('资源服务器地址')
+        .description('图片资源服务器地址')
         .role('link'),
-      resourceWebpEndpoint: Schema.string()
-        .default('https://chat-img3.jwznb.com/')
-        .description('资源webp服务器地址')
-        .role('link'),
+      // resourceWebpEndpoint: Schema.string()
+      //   .default('https://chat-img3.jwznb.com/')
+      //   .description('图片（webp）服务器地址')
+      //   .role('link'),
       resourceAudioEndpoint: Schema.string()
         .default('https://chat-audio1.jwznb.com/')
-        .description('资源audio服务器地址')
+        .description('音频资源服务器地址')
         .role('link'),
       resourceVideoEndpoint: Schema.string()
         .default('https://chat-video1.jwznb.com/')
-        .description('资源video服务器地址')
+        .description('视频资源服务器地址')
         .role('link'),
-
-    }).description('连接设置'),
+    }).description('服务器地址配置'),
 
     Schema.object({
       loggerinfo: Schema.boolean()
