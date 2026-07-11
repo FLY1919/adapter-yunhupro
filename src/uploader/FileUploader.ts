@@ -45,7 +45,7 @@ export class FileUploader extends BaseUploader
     const fileKey = await this.sendFormData(form);
 
 
-    const fileUrl = `${this.bot.config.resourceEndpoint}${fileKey}.${extension}`;
+    const fileUrl = `${this.bot.config.resourceFileEndpoint || this.bot.config.resourceEndpoint}${fileKey}.${extension}`;
     this.bot.logInfo(`生成的文件URL: ${fileUrl}`);
     if (returnKey)
     {

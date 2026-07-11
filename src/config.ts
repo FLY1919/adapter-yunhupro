@@ -9,7 +9,7 @@ export interface Config
   endpoint?: string;
   endpointweb?: string;
   resourceEndpoint?: string;
-  // resourceWebpEndpoint?: string;
+  resourceFileEndpoint?: string;
   resourceAudioEndpoint?: string;
   resourceVideoEndpoint?: string;
   loggerinfo: boolean;
@@ -114,10 +114,10 @@ export const Config: Schema<Config> =
         .default('https://chat-img.jwznb.com/')
         .description('图片资源服务器地址')
         .role('link'),
-      // resourceWebpEndpoint: Schema.string()
-      //   .default('https://chat-img3.jwznb.com/')
-      //   .description('图片（webp）服务器地址')
-      //   .role('link'),
+      resourceFileEndpoint: Schema.string()
+        .default('https://chat-file.jwznb.com/')
+        .description('文件资源服务器地址')
+        .role('link'),
       resourceAudioEndpoint: Schema.string()
         .default('https://chat-audio1.jwznb.com/')
         .description('音频资源服务器地址')
