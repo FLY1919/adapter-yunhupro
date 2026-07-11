@@ -3,10 +3,10 @@ name: Deploy VitePress Docs to GitHub Pages
 on:
   push:
     branches:
-      - docs  # 在 docs 分支推送时触发
+      - docs # 在 docs 分支推送时触发
     paths:
-      - 'docs/**' # 仅在 docs 目录下的文件发生更改时触发
-  workflow_dispatch:  # 允许手动触发
+      - "docs/**" # 仅在 docs 目录下的文件发生更改时触发
+  workflow_dispatch: # 允许手动触发
 
 jobs:
   deploy:
@@ -16,8 +16,8 @@ jobs:
       - name: Checkout docs branch
         uses: actions/checkout@v4
         with:
-          ref: docs  # 检出 docs 分支
-          path: docs  # 检出到 docs 目录
+          ref: docs # 检出 docs 分支
+          path: docs # 检出到 docs 目录
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
