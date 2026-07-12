@@ -12,6 +12,12 @@ function isHtmlWebProxyMixedMedia(bot: YunhuBot): boolean
   return (bot.config.mixedMediaFormat || 'html') === 'html-webproxy';
 }
 
+function getMixedMediaImageStyle(bot: YunhuBot): string
+{
+  const maxWidth = bot.config.HTML_max_width ?? 30;
+  return `max-width:${maxWidth}%;height:auto;`;
+}
+
 function setMixedTextMode(context: { sendType?: 'text' | 'image' | 'video' | 'file' | 'markdown' | 'html' | 'html-webproxy'; }, bot: YunhuBot)
 {
   context.sendType = isHtmlMixedMedia(bot) ? 'html' : 'markdown';
@@ -241,7 +247,7 @@ async function _visit(context: any, element: h)
         // 将 <br> 替换为换行符
         const content = element.attrs.content.replace(/<br>/g, '\n');
         context.text += context.sendType === "text" ? content : '';
-        context.markdown += context.sendType != "html" ? content : '';
+        context.markdown += context.sendType === 'markdown' ? content : '';
         context.html += content;
         break;
 
@@ -259,19 +265,20 @@ async function _visit(context: any, element: h)
           const uploadImage = await context.bot.internal.uploadImageKey(element.attrs.src ? element.attrs.src : element.attrs.url);
           const useHtmlMixedMedia = isHtmlMixedMedia(context.bot);
           const useHtmlWebProxyMixedMedia = isHtmlWebProxyMixedMedia(context.bot);
+          const imageStyle = getMixedMediaImageStyle(context.bot);
           if (useHtmlWebProxyMixedMedia)
           {
             const previewUrl = context.bot.buildExternalMediaUrl(uploadImage.url, 'image');
-            context.markdown += context.sendType != "html" ? `\n![picture](${previewUrl})\n` : '';
-            context.html += `<a href="${previewUrl}" target="_blank" rel="noopener noreferrer"><img src="${previewUrl}" alt="picture" style="max-width:40%;height:auto;"></a>`;
+            context.markdown += context.sendType === 'markdown' ? `\n![picture](${previewUrl})\n` : '';
+            context.html += `<a href="${previewUrl}"><img src="${uploadImage.url}" alt="picture" style="${imageStyle}"></a>`;
           } else if (useHtmlMixedMedia)
           {
-            context.markdown += context.sendType != "html" ? `\n![picture](${uploadImage.url})\n` : '';
-            context.html += `<a href="${uploadImage.url}"><img src="${uploadImage.url}" alt="picture" style="max-width:40%;height:auto;"></a>`;
+            context.markdown += context.sendType === 'markdown' ? `\n![picture](${uploadImage.url})\n` : '';
+            context.html += `<img src="${uploadImage.url}" alt="picture" style="${imageStyle}">`;
           } else
           {
-            context.markdown += context.sendType != "html" ? `\n<img src="${uploadImage.url}" alt="picture" style="max-width:40%;height:auto;">\n` : '';
-            context.html += `<img src="${uploadImage.url}" alt="picture" style="max-width:40%;height:auto;">`;
+            context.markdown += context.sendType === 'markdown' ? `\n![picture](${uploadImage.url})\n` : '';
+            context.html += `<img src="${uploadImage.url}" alt="picture" style="${imageStyle}">`;
           }
           if (context.sendType === 'image')
           {
@@ -290,7 +297,7 @@ async function _visit(context: any, element: h)
           const isSizeLimitError = error instanceof SizeLimitError;
           const errorMsg = isSizeLimitError ? '[图片大小超限]' : '[图片上传失败]';
           context.bot.loggerError(`${errorMsg}: ${error}`);
-          context.markdown += context.sendType != "html" ? `~~${errorMsg}~~ ` : '';
+          context.markdown += context.sendType === 'markdown' ? `~~${errorMsg}~~ ` : '';
           context.html += `<span style ="color: red;">${errorMsg}</span>`;
           if (context.sendType === 'image')
           {
@@ -400,7 +407,7 @@ async function _visit(context: any, element: h)
         await context.render(children);
         context.html += '</p>';
         context.text += context.sendType === "text" ? "\n" : '';
-        context.markdown += context.sendType != "html" ? "\n" : '';
+        context.markdown += context.sendType === 'markdown' ? "\n" : '';
         break;
 
       case 'a':
@@ -412,7 +419,7 @@ async function _visit(context: any, element: h)
           setMixedTextMode(context, context.bot);
         }
         context.text += context.sendType === "markdown" ? element.attrs.href + " " : '';
-        context.markdown += context.sendType != "html" ? `**[链接](${element.attrs.href})** ` : '';
+        context.markdown += context.sendType === 'markdown' ? `**[链接](${element.attrs.href})** ` : '';
         context.html += `<a href="${element.attrs.href}">`;
         await context.render(children);
         context.html += '</a>';
@@ -555,7 +562,7 @@ async function _visit(context: any, element: h)
         {
           setMixedTextMode(context, context.bot);
         }
-        context.markdown += context.sendType != "html" ? `\n**${attrs.name}(${attrs.id})**\n` : '';
+        context.markdown += context.sendType === 'markdown' ? `\n**${attrs.name}(${attrs.id})**\n` : '';
         context.html += `\n<strong>${attrs.name}</strong><sub>${attrs.id}</sub><br>`;
         await context.render(children);
         break;
@@ -576,7 +583,7 @@ async function _visit(context: any, element: h)
           setMixedTextMode(context, context.bot);
         }
         const level = parseInt(type.substring(1));
-        context.markdown += context.sendType != "html" ? `${'#'.repeat(level)} ` : '';
+        context.markdown += context.sendType === 'markdown' ? `${'#'.repeat(level)} ` : '';
         context.html += `<${type}>`;
         await context.render(children);
         context.html += `</${type}>`;
@@ -595,10 +602,10 @@ async function _visit(context: any, element: h)
         {
           setMixedTextMode(context, context.bot);
         }
-        context.markdown += context.sendType != "html" ? '**' : '';
+        context.markdown += context.sendType === 'markdown' ? '**' : '';
         context.html += '<b>';
         await context.render(children);
-        context.markdown += context.sendType != "html" ? '**' : '';
+        context.markdown += context.sendType === 'markdown' ? '**' : '';
         context.html += '</b>';
         break;
 
@@ -609,10 +616,10 @@ async function _visit(context: any, element: h)
         {
           setMixedTextMode(context, context.bot);
         }
-        context.markdown += context.sendType != "html" ? '*' : '';
+        context.markdown += context.sendType === 'markdown' ? '*' : '';
         context.html += '<em>';
         await context.render(children);
-        context.markdown += context.sendType != "html" ? '*' : '';
+        context.markdown += context.sendType === 'markdown' ? '*' : '';
         context.html += '</em>';
         break;
 
@@ -635,10 +642,10 @@ async function _visit(context: any, element: h)
         {
           setMixedTextMode(context, context.bot);
         }
-        context.markdown += context.sendType != "html" ? '~~' : '';
+        context.markdown += context.sendType === 'markdown' ? '~~' : '';
         context.html += '<del>';
         await context.render(children);
-        context.markdown += context.sendType != "html" ? '~~' : '';
+        context.markdown += context.sendType === 'markdown' ? '~~' : '';
         context.html += '</del>';
         break;
 
@@ -657,10 +664,10 @@ async function _visit(context: any, element: h)
         {
           setMixedTextMode(context, context.bot);
         }
-        context.markdown += context.sendType != "html" ? '`' : '';
+        context.markdown += context.sendType === 'markdown' ? '`' : '';
         context.html += '<code>';
         await context.render(children);
-        context.markdown += context.sendType != "html" ? '`' : '';
+        context.markdown += context.sendType === 'markdown' ? '`' : '';
         context.html += '</code>';
         break;
 
