@@ -3,202 +3,59 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Yunhu Media Proxy</title>
+  <title>proxy</title>
   <style>
-    :root {
-      color-scheme: light;
-      --bg: #f5f7fb;
-      --panel: #ffffff;
-      --text: #1f2937;
-      --muted: #6b7280;
-      --border: #dbe2ea;
-      --accent: #0ea5e9;
-      --danger: #ef4444;
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      background: #fff;
     }
 
-    * { box-sizing: border-box; }
     body {
-      margin: 0;
-      font-family: Arial, "PingFang SC", "Microsoft YaHei", sans-serif;
-      background: linear-gradient(180deg, #eef5ff 0%, var(--bg) 100%);
-      color: var(--text);
-    }
-
-    .shell {
-      max-width: 960px;
-      margin: 0 auto;
-      padding: 32px 20px 48px;
-    }
-
-    .card {
-      background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: 18px;
-      box-shadow: 0 18px 48px rgba(15, 23, 42, 0.08);
-      overflow: hidden;
-    }
-
-    .hero {
-      padding: 24px;
-      border-bottom: 1px solid var(--border);
-      background: linear-gradient(135deg, rgba(14, 165, 233, 0.08), rgba(59, 130, 246, 0.03));
-    }
-
-    .title {
-      margin: 0 0 8px;
-      font-size: 24px;
-      line-height: 1.2;
-    }
-
-    .desc {
-      margin: 0;
-      color: var(--muted);
-      word-break: break-all;
-      font-size: 14px;
-    }
-
-    .content {
-      padding: 24px;
-    }
-
-    .toolbar {
       display: flex;
-      gap: 12px;
-      flex-wrap: wrap;
-      margin-bottom: 18px;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      font-family: Arial, "PingFang SC", "Microsoft YaHei", sans-serif;
+      color: #222;
     }
 
-    button, .link-btn {
-      appearance: none;
-      border: 1px solid var(--border);
-      background: #fff;
-      color: var(--text);
-      border-radius: 10px;
-      padding: 10px 14px;
-      cursor: pointer;
-      text-decoration: none;
-      font-size: 14px;
-    }
-
-    button.primary, .link-btn.primary {
-      background: var(--accent);
-      color: #fff;
-      border-color: var(--accent);
-    }
-
-    .status {
-      padding: 12px 14px;
-      border-radius: 12px;
-      background: #f8fafc;
-      border: 1px dashed var(--border);
-      color: var(--muted);
-      margin-bottom: 18px;
+    #message {
+      padding: 16px 20px;
+      font-size: 16px;
+      line-height: 1.6;
       white-space: pre-wrap;
-    }
-
-    .preview {
-      display: grid;
-      gap: 16px;
-      justify-items: start;
-    }
-
-    img, video {
-      max-width: 100%;
-      border-radius: 14px;
-      border: 1px solid var(--border);
-      background: #fff;
-    }
-
-    img {
-      height: auto;
-    }
-
-    video {
-      width: 100%;
-    }
-
-    audio {
-      width: 100%;
-    }
-
-    code {
-      display: block;
-      padding: 12px 14px;
-      border-radius: 10px;
-      background: #0f172a;
-      color: #e2e8f0;
-      overflow-x: auto;
       word-break: break-all;
+      text-align: center;
     }
 
-    .hidden {
-      display: none !important;
+    #preview {
+      display: none;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
     }
   </style>
 </head>
 <body>
-  <main class="shell">
-    <section class="card">
-      <header class="hero">
-        <h1 class="title">云湖富媒体查看器</h1>
-        <p class="desc" id="summary">正在读取参数...</p>
-      </header>
-      <div class="content">
-        <div class="toolbar">
-          <button class="primary" id="downloadBtn" type="button">下载</button>
-          <button id="copyBtn" type="button">复制原始地址</button>
-          <a id="openBtn" class="link-btn" target="_blank" rel="noopener noreferrer">新标签页打开原图</a>
-        </div>
-        <div class="status" id="status">等待加载...</div>
-        <div class="preview" id="preview"></div>
-      </div>
-    </section>
-  </main>
+  <div id="message">缺少 url 参数。</div>
+  <img id="preview" alt="media">
 
   <script>
     (() => {
       const params = new URLSearchParams(location.search);
       const mediaUrl = params.get('url') || '';
       const mediaType = (params.get('type') || 'image').toLowerCase();
-      const summary = document.getElementById('summary');
-      const status = document.getElementById('status');
+      const message = document.getElementById('message');
       const preview = document.getElementById('preview');
-      const downloadBtn = document.getElementById('downloadBtn');
-      const copyBtn = document.getElementById('copyBtn');
-      const openBtn = document.getElementById('openBtn');
       const apifoxProxy = 'https://web-proxy.apifox.com/api/v1/request';
       const referer = 'http://myapp.jwznb.com';
       const userAgent = 'Apifox/1.0.0 (https://apifox.com)';
-      let currentObjectUrl = '';
-      let currentFileName = '';
 
-      function setStatus(message, isError = false) {
-        status.textContent = message;
-        status.style.color = isError ? 'var(--danger)' : 'var(--muted)';
-      }
-
-      function getFileName(url) {
-        try {
-          const pathname = new URL(url).pathname;
-          const name = pathname.split('/').filter(Boolean).pop();
-          return name || `${mediaType}.bin`;
-        } catch {
-          return `${mediaType}.bin`;
-        }
-      }
-
-      async function copyText(text) {
-        if (!text) return;
-        if (navigator.clipboard?.writeText) {
-          await navigator.clipboard.writeText(text);
-          return;
-        }
-        const textarea = document.createElement('textarea');
-        textarea.value = text;
-        document.body.appendChild(textarea);
-        textarea.select();
-        document.execCommand('copy');
-        textarea.remove();
+      if (!mediaUrl) {
+        message.textContent = '缺少 url 参数。';
+        return;
       }
 
       async function fetchViaApifox(targetUrl) {
@@ -211,101 +68,32 @@
             'api-h0': `Referer=${referer}, User-Agent=${userAgent}, Accept=*/*, Host=${host}, Accept-Encoding=gzip%2C deflate%2C br, Connection=keep-alive`,
           },
         });
-
         if (!response.ok) {
-          throw new Error(`Apifox 代理请求失败: HTTP ${response.status}`);
+          throw new Error(`HTTP ${response.status}`);
         }
-
         return response;
       }
 
-      async function loadMedia() {
-        if (!mediaUrl) {
-          summary.textContent = '缺少 url 参数。';
-          setStatus('请在地址栏附加 ?url=...&type=image');
-          return;
-        }
-
-        summary.textContent = `类型：${mediaType}\n原始地址：${mediaUrl}`;
-        openBtn.href = mediaUrl;
-        currentFileName = getFileName(mediaUrl);
-        downloadBtn.disabled = true;
-
+      (async () => {
         try {
-          setStatus('正在通过 Apifox 代理加载资源...');
           const response = await fetchViaApifox(mediaUrl);
           const blob = await response.blob();
-
           if (!blob.size) {
-            throw new Error('代理响应为空');
+            throw new Error('empty response');
           }
+          const objectUrl = URL.createObjectURL(blob);
+          message.remove();
 
-          if (currentObjectUrl) {
-            URL.revokeObjectURL(currentObjectUrl);
-          }
-
-          currentObjectUrl = URL.createObjectURL(blob);
-          const contentType = response.headers.get('content-type') || blob.type || '';
-
-          preview.innerHTML = '';
-          if (mediaType === 'image' || contentType.startsWith('image/')) {
-            const img = document.createElement('img');
-            img.src = currentObjectUrl;
-            img.alt = currentFileName;
-            img.style.maxHeight = '80vh';
-            preview.appendChild(img);
-          } else if (mediaType === 'video' || contentType.startsWith('video/')) {
-            const video = document.createElement('video');
-            video.src = currentObjectUrl;
-            video.controls = true;
-            preview.appendChild(video);
-          } else if (mediaType === 'audio' || contentType.startsWith('audio/')) {
-            const audio = document.createElement('audio');
-            audio.src = currentObjectUrl;
-            audio.controls = true;
-            preview.appendChild(audio);
+          if (mediaType === 'image' || blob.type.startsWith('image/')) {
+            preview.src = objectUrl;
+            preview.style.display = 'block';
           } else {
-            const link = document.createElement('a');
-            link.href = currentObjectUrl;
-            link.download = currentFileName;
-            link.textContent = `下载文件：${currentFileName}`;
-            link.className = 'link-btn primary';
-            preview.appendChild(link);
-
-            const note = document.createElement('code');
-            note.textContent = `content-type: ${contentType || 'unknown'}`;
-            preview.appendChild(note);
+            location.href = objectUrl;
           }
-
-          downloadBtn.disabled = false;
-          setStatus('加载完成。');
         } catch (error) {
-          preview.innerHTML = '';
-          downloadBtn.disabled = true;
-          setStatus(String(error?.message || error), true);
+          message.textContent = `加载失败：${String(error?.message || error)}`;
         }
-      }
-
-      downloadBtn.addEventListener('click', () => {
-        if (!currentObjectUrl) return;
-        const a = document.createElement('a');
-        a.href = currentObjectUrl;
-        a.download = currentFileName || 'media';
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-      });
-
-      copyBtn.addEventListener('click', () => {
-        if (!mediaUrl) return;
-        copyText(mediaUrl).then(() => setStatus('已复制原始地址。')).catch((error) => setStatus(String(error?.message || error), true));
-      });
-
-      openBtn.addEventListener('click', (event) => {
-        if (!mediaUrl) event.preventDefault();
-      });
-
-      loadMedia();
+      })();
     })();
   </script>
 </body>
