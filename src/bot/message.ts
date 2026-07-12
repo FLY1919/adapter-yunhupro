@@ -2,6 +2,21 @@ import { Context, h, Dict, MessageEncoder, Fragment } from 'koishi';
 import { YunhuBot } from './bot';
 import { Button, SizeLimitError } from '../utils/types';
 
+function isHtmlMixedMedia(bot: YunhuBot): boolean
+{
+  return (bot.config.mixedMediaFormat || 'html') !== 'markdown';
+}
+
+function isHtmlWebProxyMixedMedia(bot: YunhuBot): boolean
+{
+  return (bot.config.mixedMediaFormat || 'html') === 'html-webproxy';
+}
+
+function setMixedTextMode(context: { sendType?: 'text' | 'image' | 'video' | 'file' | 'markdown' | 'html' | 'html-webproxy'; }, bot: YunhuBot)
+{
+  context.sendType = isHtmlMixedMedia(bot) ? 'html' : 'markdown';
+}
+
 export async function fragmentToPayload(bot: YunhuBot, fragment: Fragment): Promise<{ contentType: string; content: any; }>
 {
   const elements = h.normalize(fragment);
@@ -40,7 +55,7 @@ export async function fragmentToPayload(bot: YunhuBot, fragment: Fragment): Prom
     return null;
   }
 
-  const finalContentType = sendType || 'text';
+  const finalContentType = sendType === 'html-webproxy' ? 'html' : (sendType || 'text');
   const finalContent: any = {};
 
   if (finalContentType === 'text')
@@ -72,7 +87,7 @@ export class YunhuMessageEncoder extends MessageEncoder<Context, YunhuBot>
 {
   // 使用 payload 存储待发送的消息
   private payload: Dict;
-  private sendType: 'text' | 'image' | 'video' | 'file' | 'markdown' | 'html' | undefined = undefined;
+  private sendType: 'text' | 'image' | 'video' | 'file' | 'markdown' | 'html' | 'html-webproxy' | undefined = undefined;
   private html = "";
   private text = "";
   private markdown = "";
@@ -159,7 +174,7 @@ export class YunhuMessageEncoder extends MessageEncoder<Context, YunhuBot>
     {
       this.sendType = 'text';
     }
-    this.payload.contentType = this.sendType;
+    this.payload.contentType = this.sendType === 'html-webproxy' ? 'html' : this.sendType;
 
     if (this.sendType === 'text')
     {
@@ -221,7 +236,7 @@ async function _visit(context: any, element: h)
           context.sendType = 'text';
         } else if (context.sendType === 'image')
         {
-          context.sendType = 'markdown';
+          setMixedTextMode(context, context.bot);
         }
         // 将 <br> 替换为换行符
         const content = element.attrs.content.replace(/<br>/g, '\n');
@@ -237,13 +252,27 @@ async function _visit(context: any, element: h)
           context.sendType = 'image';
         } else if (context.sendType === 'text' || context.sendType === 'image')
         {
-          context.sendType = 'markdown';
+          setMixedTextMode(context, context.bot);
         }
         try
         {
           const uploadImage = await context.bot.internal.uploadImageKey(element.attrs.src ? element.attrs.src : element.attrs.url);
-          context.markdown += context.sendType != "html" ? `\n![美少女大成功](${uploadImage.url})\n` : '';
-          context.html += `<img src="${uploadImage.url}" alt="FLY可爱~[图片]">`;
+          const useHtmlMixedMedia = isHtmlMixedMedia(context.bot);
+          const useHtmlWebProxyMixedMedia = isHtmlWebProxyMixedMedia(context.bot);
+          if (useHtmlWebProxyMixedMedia)
+          {
+            const previewUrl = context.bot.buildExternalMediaUrl(uploadImage.url, 'image');
+            context.markdown += context.sendType != "html" ? `\n![picture](${previewUrl})\n` : '';
+            context.html += `<a href="${previewUrl}" target="_blank" rel="noopener noreferrer"><img src="${previewUrl}" alt="picture" style="max-width:40%;height:auto;"></a>`;
+          } else if (useHtmlMixedMedia)
+          {
+            context.markdown += context.sendType != "html" ? `\n![picture](${uploadImage.url})\n` : '';
+            context.html += `<a href="${uploadImage.url}"><img src="${uploadImage.url}" alt="picture" style="max-width:40%;height:auto;"></a>`;
+          } else
+          {
+            context.markdown += context.sendType != "html" ? `\n<img src="${uploadImage.url}" alt="picture" style="max-width:40%;height:auto;">\n` : '';
+            context.html += `<img src="${uploadImage.url}" alt="picture" style="max-width:40%;height:auto;">`;
+          }
           if (context.sendType === 'image')
           {
             // 区分YunhuMessageEncoder和fragmentToPayload的上下文
@@ -365,7 +394,7 @@ async function _visit(context: any, element: h)
           context.sendType = 'text';
         } else if (context.sendType === 'image')
         {
-          context.sendType = 'markdown';
+          setMixedTextMode(context, context.bot);
         }
         context.html += '<p>';
         await context.render(children);
@@ -380,7 +409,7 @@ async function _visit(context: any, element: h)
           context.sendType = 'text';
         } else if (context.sendType === 'image')
         {
-          context.sendType = 'markdown';
+          setMixedTextMode(context, context.bot);
         }
         context.text += context.sendType === "markdown" ? element.attrs.href + " " : '';
         context.markdown += context.sendType != "html" ? `**[链接](${element.attrs.href})** ` : '';
@@ -524,7 +553,7 @@ async function _visit(context: any, element: h)
       case 'author':
         if (context.sendType == undefined || context.sendType === 'image' || context.sendType === 'text')
         {
-          context.sendType = 'markdown';
+          setMixedTextMode(context, context.bot);
         }
         context.markdown += context.sendType != "html" ? `\n**${attrs.name}(${attrs.id})**\n` : '';
         context.html += `\n<strong>${attrs.name}</strong><sub>${attrs.id}</sub><br>`;
@@ -544,7 +573,7 @@ async function _visit(context: any, element: h)
       case 'h6':
         if (context.sendType == undefined || context.sendType === 'image' || context.sendType === 'text')
         {
-          context.sendType = 'markdown';
+          setMixedTextMode(context, context.bot);
         }
         const level = parseInt(type.substring(1));
         context.markdown += context.sendType != "html" ? `${'#'.repeat(level)} ` : '';
@@ -564,7 +593,7 @@ async function _visit(context: any, element: h)
       case 'b':
         if (context.sendType == undefined || context.sendType === 'image' || context.sendType === 'text')
         {
-          context.sendType = 'markdown';
+          setMixedTextMode(context, context.bot);
         }
         context.markdown += context.sendType != "html" ? '**' : '';
         context.html += '<b>';
@@ -578,7 +607,7 @@ async function _visit(context: any, element: h)
       case 'em':
         if (context.sendType == undefined || context.sendType === 'image' || context.sendType === 'text')
         {
-          context.sendType = 'markdown';
+          setMixedTextMode(context, context.bot);
         }
         context.markdown += context.sendType != "html" ? '*' : '';
         context.html += '<em>';
@@ -592,7 +621,7 @@ async function _visit(context: any, element: h)
       case 'ins':
         if (context.sendType == undefined || context.sendType === 'image' || context.sendType === 'text')
         {
-          context.sendType = 'html';
+          setMixedTextMode(context, context.bot);
         }
         context.html += '<u>';
         await context.render(children);
@@ -604,7 +633,7 @@ async function _visit(context: any, element: h)
       case 'del':
         if (context.sendType == undefined || context.sendType === 'image' || context.sendType === 'text')
         {
-          context.sendType = 'markdown';
+          setMixedTextMode(context, context.bot);
         }
         context.markdown += context.sendType != "html" ? '~~' : '';
         context.html += '<del>';
@@ -616,7 +645,7 @@ async function _visit(context: any, element: h)
       case 'spl':
         if (context.sendType == undefined || context.sendType === 'image' || context.sendType === 'text')
         {
-          context.sendType = 'html';
+          setMixedTextMode(context, context.bot);
         }
         context.html += '<details><summary>点击展开查看</summary>';
         await context.render(children);
@@ -626,7 +655,7 @@ async function _visit(context: any, element: h)
       case 'code':
         if (context.sendType == undefined || context.sendType === 'image' || context.sendType === 'text')
         {
-          context.sendType = 'markdown';
+          setMixedTextMode(context, context.bot);
         }
         context.markdown += context.sendType != "html" ? '`' : '';
         context.html += '<code>';
@@ -638,7 +667,7 @@ async function _visit(context: any, element: h)
       case 'sup':
         if (context.sendType == undefined || context.sendType === 'image' || context.sendType === 'text')
         {
-          context.sendType = 'html';
+          setMixedTextMode(context, context.bot);
         }
         context.html += '<sup>';
         await context.render(children);
@@ -648,7 +677,7 @@ async function _visit(context: any, element: h)
       case 'sub':
         if (context.sendType == undefined || context.sendType === 'image' || context.sendType === 'text')
         {
-          context.sendType = 'html';
+          setMixedTextMode(context, context.bot);
         }
         context.html += '<sub>';
         await context.render(children);

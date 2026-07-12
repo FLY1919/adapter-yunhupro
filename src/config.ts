@@ -12,6 +12,7 @@ export interface Config
   resourceFileEndpoint?: string;
   resourceAudioEndpoint?: string;
   resourceVideoEndpoint?: string;
+  mixedMediaFormat?: 'html' | 'markdown' | 'html-webproxy';
   loggerinfo: boolean;
   audioBackgroundColor?: string;
   showConsole?: boolean;
@@ -94,6 +95,17 @@ export const Config: Schema<Config> =
           .description("流式消息总时长（秒）。数值越小 发消息越快。<br>流式消息将被标记为`本内容为AI生成，仅供参考`"),
       }),
     ]),
+
+    Schema.object({
+      mixedMediaFormat: Schema.union([
+        Schema.const('html').description('HTML格式（预览图不占屏幕，但不能点击、APP内打开）'),
+        Schema.const('html-webproxy').description('HTML-webproxy格式（预览图可点击跳转到网页查看/下载）'),
+        Schema.const('markdown').description('Markdown格式（预览图占屏幕，可点击、APP内打开）'),
+      ])
+        .default('html')
+        .description('图文混合内容的发送方式')
+        .role('radio'),
+    }).description('进阶设置'),
 
     Schema.object({
       showConsole: Schema.boolean()

@@ -62,6 +62,15 @@ export class YunhuBot extends Bot<Context, Config>
     return null;
   }
 
+  buildExternalMediaUrl(mediaUrl: string, type: 'image' | 'video' | 'audio' | 'file'): string
+  {
+    const baseUrl = 'https://fly1919.github.io/adapter-yunhupro/';
+    const url = new URL('proxy.html', baseUrl);
+    url.searchParams.set('url', mediaUrl);
+    url.searchParams.set('type', type);
+    return url.toString();
+  }
+
   async deleteMessage(channelId: string, messageId: string)
   {
     return this.internal.deleteMessage(channelId, messageId);
