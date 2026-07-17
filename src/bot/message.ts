@@ -49,6 +49,24 @@ function getForwardName(attrs: Dict): string
   return String(attrs.name || attrs.nickname || attrs.username || attrs.userName || attrs.id || attrs.userId || '匿名');
 }
 
+function getBotForwardName(bot: YunhuBot): string
+{
+  return String(bot.user?.name || '机器人');
+}
+
+function extractForwardAuthor(node: ForwardElement): Dict | null
+{
+  if (typeof node === 'string') return null;
+  if (node.type !== 'author') return null;
+  return node.attrs ?? {};
+}
+
+function getForwardDisplayName(bot: YunhuBot, attrs: Dict | null): string
+{
+  const name = String(attrs?.name || attrs?.nickname || attrs?.username || attrs?.userName || '');
+  return name || getBotForwardName(bot);
+}
+
 function formatForwardTime(time?: string | number): string
 {
   if (time == null) return '';
@@ -90,9 +108,24 @@ async function renderForwardContent(bot: YunhuBot, fragment: Fragment): Promise<
 
 async function renderForwardMessage(bot: YunhuBot, attrs: Dict, children: Fragment): Promise<string>
 {
-  const body = await renderForwardContent(bot, children);
+  const nodes = h.normalize(children);
+  let authorAttrs: Dict | null = null;
+  const content: ForwardElement[] = [];
+
+  for (const node of nodes)
+  {
+    const extracted = extractForwardAuthor(node);
+    if (extracted)
+    {
+      authorAttrs = extracted;
+      continue;
+    }
+    content.push(node);
+  }
+
+  const body = await renderForwardContent(bot, content);
   if (!body) return '';
-  const name = escapeHtml(getForwardName(attrs));
+  const name = escapeHtml(getForwardDisplayName(bot, authorAttrs || attrs));
   const time = formatForwardTime(attrs.time);
   const timeText = time ? ` <span style="color:#999;font-size:12px;">${time}</span>` : '';
   return `<div style="margin:8px 0;padding:10px 12px;border:1px solid #e6e8ec;border-radius:8px;background:#fff;"><div style="font-size:12px;line-height:1.4;margin-bottom:6px;color:#666;"><strong>${name}</strong>${timeText}</div><div style="font-size:14px;line-height:1.6;word-break:break-word;">${body}</div></div>`;
@@ -107,7 +140,7 @@ async function renderForwardCard(bot: YunhuBot, fragment: Fragment): Promise<str
   {
     if (typeof node === 'string')
     {
-      const card = await renderForwardMessage(bot, { name: '消息' }, [node]);
+      const card = await renderForwardMessage(bot, { name: getBotForwardName(bot) }, [node]);
       if (card) cards.push(card);
       continue;
     }
@@ -133,7 +166,7 @@ async function renderForwardCard(bot: YunhuBot, fragment: Fragment): Promise<str
       continue;
     }
 
-    const card = await renderForwardMessage(bot, { name: '消息' }, [node]);
+    const card = await renderForwardMessage(bot, { name: getBotForwardName(bot) }, [node]);
     if (card) cards.push(card);
   }
 
