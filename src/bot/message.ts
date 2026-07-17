@@ -1,4 +1,4 @@
-import { Context, h, Dict, MessageEncoder, Fragment } from 'koishi';
+﻿import { Context, h, Dict, MessageEncoder, Fragment } from 'koishi';
 import { YunhuBot } from './bot';
 import { Button, SizeLimitError } from '../utils/types';
 
@@ -21,6 +21,215 @@ function getMixedMediaImageStyle(bot: YunhuBot): string
 function setMixedTextMode(context: { sendType?: 'text' | 'image' | 'video' | 'file' | 'markdown' | 'html' | 'html-webproxy'; }, bot: YunhuBot)
 {
   context.sendType = isHtmlMixedMedia(bot) ? 'html' : 'markdown';
+}
+
+type ForwardElement = ReturnType<typeof h.normalize>[number];
+
+interface ForwardRenderContext
+{
+  bot: YunhuBot;
+  text: string;
+  markdown: string;
+  html: string;
+  render: (children: Fragment) => Promise<void>;
+}
+
+function escapeHtml(text: string): string
+{
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function getForwardName(attrs: Dict): string
+{
+  return String(attrs.name || attrs.nickname || attrs.username || attrs.userName || attrs.id || attrs.userId || '匿名');
+}
+
+function formatForwardTime(time?: string | number): string
+{
+  if (time == null) return '';
+  const value = Number(time);
+  if (!Number.isFinite(value)) return '';
+  const timestamp = value < 1e12 ? value * 1000 : value;
+  const date = new Date(timestamp);
+  return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+}
+
+async function renderForwardContent(bot: YunhuBot, fragment: Fragment): Promise<string>
+{
+  const context: ForwardRenderContext = {
+    bot,
+    text: '',
+    markdown: '',
+    html: '',
+    render: async (children) =>
+    {
+      for (const child of h.normalize(children))
+      {
+        await renderForwardElement(context, child);
+      }
+    },
+  };
+
+  await context.render(fragment);
+
+  if (context.html.trim())
+  {
+    return context.html.trim();
+  }
+  if (context.markdown.trim())
+  {
+    return escapeHtml(context.markdown.trim()).replace(/\n/g, '<br>');
+  }
+  return escapeHtml(context.text.trim()).replace(/\n/g, '<br>');
+}
+
+async function renderForwardMessage(bot: YunhuBot, attrs: Dict, children: Fragment): Promise<string>
+{
+  const body = await renderForwardContent(bot, children);
+  if (!body) return '';
+  const name = escapeHtml(getForwardName(attrs));
+  const time = formatForwardTime(attrs.time);
+  const timeText = time ? ` <span style="color:#999;font-size:12px;">${time}</span>` : '';
+  return `<div style="margin:8px 0;padding:10px 12px;border:1px solid #e6e8ec;border-radius:8px;background:#fff;"><div style="font-size:12px;line-height:1.4;margin-bottom:6px;color:#666;"><strong>${name}</strong>${timeText}</div><div style="font-size:14px;line-height:1.6;word-break:break-word;">${body}</div></div>`;
+}
+
+async function renderForwardCard(bot: YunhuBot, fragment: Fragment): Promise<string>
+{
+  const nodes = h.normalize(fragment);
+  const cards: string[] = [];
+
+  for (const node of nodes)
+  {
+    if (typeof node === 'string')
+    {
+      const card = await renderForwardMessage(bot, { name: '消息' }, [node]);
+      if (card) cards.push(card);
+      continue;
+    }
+
+    if (node.type === 'message' && node.attrs.forward)
+    {
+      const nested = await renderForwardCard(bot, node.children ?? []);
+      if (nested) cards.push(nested);
+      continue;
+    }
+
+    if (node.type === 'figure')
+    {
+      const nested = await renderForwardCard(bot, node.children ?? []);
+      if (nested) cards.push(nested);
+      continue;
+    }
+
+    if (node.type === 'message')
+    {
+      const card = await renderForwardMessage(bot, node.attrs, node.children ?? []);
+      if (card) cards.push(card);
+      continue;
+    }
+
+    const card = await renderForwardMessage(bot, { name: '消息' }, [node]);
+    if (card) cards.push(card);
+  }
+
+  if (!cards.length) return '';
+
+  return `<details style="width:100%;box-sizing:border-box;border:1px solid #dfe3e8;border-radius:10px;background:#f7f8fa;overflow:hidden;"><summary style="list-style:none;cursor:pointer;padding:10px 12px;background:#fff;border-bottom:1px solid #e6e8ec;font-size:14px;font-weight:600;color:#333;">合并聊天记录</summary><div style="padding:8px 10px;">${cards.join('')}</div></details>`;
+}
+
+async function renderForwardElement(context: ForwardRenderContext, element: ForwardElement)
+{
+  if (typeof element === 'string')
+  {
+    context.text += element;
+    context.markdown += element;
+    context.html += escapeHtml(element);
+    return;
+  }
+
+  const { type, attrs, children = [] } = element;
+
+  switch (type)
+  {
+    case 'text':
+      {
+        const content = String(attrs.content || '').replace(/<br>/g, '\n');
+        context.text += content;
+        context.markdown += content;
+        context.html += escapeHtml(content).replace(/\n/g, '<br>');
+        break;
+      }
+    case 'br':
+      context.text += '\n';
+      context.markdown += '\n';
+      context.html += '<br>';
+      break;
+    case 'p':
+      context.text += '\n';
+      context.markdown += '\n';
+      context.html += '<p>';
+      await context.render(children);
+      context.html += '</p>';
+      break;
+    case 'a':
+      context.html += `<a href="${escapeHtml(String(attrs.href || ''))}">`;
+      await context.render(children);
+      context.html += '</a>';
+      break;
+    case 'img':
+    case 'image':
+      {
+        const src = String(attrs.src || attrs.url || '');
+        if (src)
+        {
+          const uploadImage = await context.bot.internal.uploadImageKey(src);
+          context.html += `<img src="${escapeHtml(uploadImage.url)}" alt="picture" style="max-width:100%;height:auto;">`;
+        }
+        break;
+      }
+    case 'video':
+      {
+        const src = String(attrs.src || '');
+        if (src)
+        {
+          const uploadVideo = await context.bot.internal.uploadVideoKey(src);
+          context.html += `<a href="${escapeHtml(uploadVideo.url)}" target="_blank" rel="noopener noreferrer">[视频]</a>`;
+        }
+        break;
+      }
+    case 'audio':
+      {
+        const src = String(attrs.src || '');
+        if (src)
+        {
+          const uploadAudio = await context.bot.internal.uploadAudioKey(src);
+          context.html += `<a href="${escapeHtml(uploadAudio.url)}" target="_blank" rel="noopener noreferrer">[音频]</a>`;
+        }
+        break;
+      }
+    case 'file':
+      {
+        const src = String(attrs.src || '');
+        if (src)
+        {
+          const uploadFile = await context.bot.internal.uploadFileKey(src);
+          const label = escapeHtml(String(attrs.title || '[文件]'));
+          context.html += `<a href="${escapeHtml(uploadFile.url)}" target="_blank" rel="noopener noreferrer">${label}</a>`;
+        }
+        break;
+      }
+    case 'message':
+      await context.render(children);
+      break;
+    default:
+      await context.render(children);
+      break;
+  }
 }
 
 export async function fragmentToPayload(bot: YunhuBot, fragment: Fragment): Promise<{ contentType: string; content: any; }>
@@ -530,13 +739,16 @@ async function _visit(context: any, element: h)
       case 'message':
         if (attrs.forward)
         {
-          if (context.message.length > 0)
+          const forwardHtml = await renderForwardCard(context.bot, children);
+          if (!forwardHtml)
           {
-            await context.flush();
+            break;
           }
-          context.switch_message = false;
-          await context.render(children);
-          context.switch_message = true;
+          await context.flush();
+          context.sendType = 'html';
+          context.html += forwardHtml;
+          await context.flush();
+          break;
         } else if (!context.switch_message)
         {
           await context.render(children);
@@ -548,6 +760,19 @@ async function _visit(context: any, element: h)
           await context.flush();
         }
         break;
+
+      case 'figure': {
+        const forwardHtml = await renderForwardCard(context.bot, children);
+        if (!forwardHtml)
+        {
+          break;
+        }
+        await context.flush();
+        context.sendType = 'html';
+        context.html += forwardHtml;
+        await context.flush();
+        break;
+      }
 
       case 'quote':
         if (context.payload)
