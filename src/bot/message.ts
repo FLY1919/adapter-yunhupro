@@ -221,7 +221,15 @@ async function renderForwardElement(context: ForwardRenderContext, element: Forw
         if (src)
         {
           const uploadImage = await context.bot.internal.uploadImageKey(src);
-          context.html += `<img src="${escapeHtml(uploadImage.url)}" alt="picture" style="max-width:100%;height:auto;">`;
+          const imageStyle = getMixedMediaImageStyle(context.bot);
+          if (isHtmlWebProxyMixedMedia(context.bot))
+          {
+            const previewUrl = context.bot.buildExternalMediaUrl(uploadImage.url, 'image');
+            context.html += `<a href="${escapeHtml(previewUrl)}"><img src="${escapeHtml(uploadImage.url)}" alt="picture" style="${imageStyle}"></a>`;
+          } else
+          {
+            context.html += `<img src="${escapeHtml(uploadImage.url)}" alt="picture" style="${imageStyle}">`;
+          }
         }
         break;
       }
