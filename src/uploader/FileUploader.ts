@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto';
+
 import { BaseUploader } from './BaseUploader';
 import { YunhuBot } from '../bot/bot';
 import { SizeLimitError } from '../utils/types';
@@ -44,8 +46,13 @@ export class FileUploader extends BaseUploader
     form.append('file', blob, finalFilename);
     const fileKey = await this.sendFormData(form);
 
+    const hash = createHash('md5');
+    hash.update(buffer);
+    const fileHash = hash.digest('hex');
+    this.bot.logInfo(`文件哈希: ${fileHash}, 扩展名: ${extension}`);
 
-    const fileUrl = `${this.bot.config.resourceFileEndpoint || this.bot.config.resourceEndpoint}${fileKey}.${extension}`;
+    const fileBase = this.bot.config.resourceFileEndpoint || this.bot.config.resourceEndpoint;
+    const fileUrl = `${fileBase}${fileHash}.${extension}`;
     this.bot.logInfo(`生成的文件URL: ${fileUrl}`);
     if (returnKey)
     {

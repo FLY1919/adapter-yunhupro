@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto';
+
 import { BaseUploader } from './BaseUploader';
 import { YunhuBot } from '../bot/bot';
 import { compressVideo } from '../utils/utils';
@@ -66,9 +68,15 @@ export class VideoUploader extends BaseUploader
     form.append('video', blob, finalFilename);
     const videoKey = await this.sendFormData(form);
 
-
     // 视频和音频最终都作为视频处理，使用视频的URL格式
-    const videoUrl = `${this.bot.config.resourceEndpoint}${videoKey}.mp4`;
+    const hash = createHash('md5');
+    hash.update(finalBuffer);
+    const videoHash = hash.digest('hex');
+    this.bot.logInfo(`视频哈希: ${videoHash}`);
+
+    const videoBase = this.bot.config.resourceVideoEndpoint || this.bot.config.resourceEndpoint;
+    const videoUrl = `${videoBase}${videoHash}.mp4`;
+    this.bot.logInfo(`生成的视频URL: ${videoUrl}`);
     if (returnKey)
     {
       return {

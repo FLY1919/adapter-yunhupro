@@ -239,7 +239,8 @@ async function renderForwardElement(context: ForwardRenderContext, element: Forw
         if (src)
         {
           const uploadVideo = await context.bot.internal.uploadVideoKey(src);
-          context.html += `<a href="${escapeHtml(uploadVideo.url)}" target="_blank" rel="noopener noreferrer">[视频]</a>`;
+          const previewUrl = context.bot.buildExternalMediaUrl(uploadVideo.url, 'video');
+          context.html += `<a href="${escapeHtml(previewUrl)}" target="_blank" rel="noopener noreferrer">[视频]</a>`;
         }
         break;
       }
