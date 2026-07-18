@@ -1,5 +1,6 @@
 import { Context } from 'koishi';
 import { } from 'koishi-plugin-ffmpeg';
+import { createHash } from 'node:crypto';
 import { writeFileSync, readFileSync, unlinkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -82,7 +83,11 @@ export class AudioUploader extends BaseUploader
       form.append('video', blob, videoFilename);
       const videoKey = await this.sendFormData(form);
 
-      const videoUrl = `${this.bot.config.resourceVideoEndpoint || this.bot.config.resourceEndpoint}${videoKey}.mp4`;
+      const hash = createHash('md5');
+      hash.update(Buffer.from(finalBuffer));
+      const videoHash = hash.digest('hex');
+      const videoBase = this.bot.config.resourceVideoEndpoint || this.bot.config.resourceEndpoint;
+      const videoUrl = `${videoBase}${videoHash}.mp4`;
       this.bot.logInfo(`生成的音频视频URL: ${videoUrl}`);
 
       if (returnKey)
