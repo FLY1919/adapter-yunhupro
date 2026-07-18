@@ -53,10 +53,22 @@
       const referer = 'http://myapp.jwznb.com';
       const userAgent = 'Apifox/1.0.0 (https://apifox.com)';
 
+      function getFileName(targetUrl) {
+        try {
+          const parsed = new URL(targetUrl);
+          const name = parsed.pathname.split('/').filter(Boolean).pop();
+          return name ? decodeURIComponent(name) : 'proxy';
+        } catch {
+          return 'proxy';
+        }
+      }
+
       if (!mediaUrl) {
         message.textContent = '缺少 url 参数。';
         return;
       }
+
+      document.title = getFileName(mediaUrl);
 
       async function fetchViaApifox(targetUrl) {
         const host = new URL(targetUrl).host;
