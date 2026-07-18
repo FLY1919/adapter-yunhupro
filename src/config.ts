@@ -12,6 +12,7 @@ export interface Config
   resourceFileEndpoint?: string;
   resourceAudioEndpoint?: string;
   resourceVideoEndpoint?: string;
+  externalMediaProxyBaseUrl?: string;
   mixedMediaFormat?: 'html' | 'markdown' | 'html-webproxy';
   HTML_max_width?: number;
   loggerinfo: boolean;
@@ -99,14 +100,15 @@ export const Config: Schema<Config> =
 
     Schema.object({
       mixedMediaFormat: Schema.union([
-        Schema.const('html').description('HTML格式（预览图不占屏幕，但不能点击、APP内打开）'),
         Schema.const('html-webproxy').description('HTML-webproxy格式（HTML格式预览图，可点击跳转到网页查看/下载）'),
+        Schema.const('html').description('HTML格式（预览图不占屏幕，但不能点击、APP内打开）'),
         Schema.const('markdown').description('Markdown格式（预览图占屏幕，可点击、APP内打开）'),
       ]).default('html-webproxy').description('图文混合内容的发送方式').role('radio'),
     }).description('进阶设置'),
     Schema.union([
       Schema.object({
         mixedMediaFormat: Schema.const('html-webproxy'),
+        externalMediaProxyBaseUrl: Schema.string().default('https://fly1919.github.io/adapter-yunhupro/').description('外部富媒体跳转代理地址').role('link'),
         HTML_max_width: Schema.number().role('slider').min(0).max(100).step(1).default(30).description('预览图的最大宽度百分比'),
       }),
       Schema.object({

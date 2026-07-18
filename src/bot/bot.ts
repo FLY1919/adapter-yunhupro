@@ -64,7 +64,7 @@ export class YunhuBot extends Bot<Context, Config>
 
   buildExternalMediaUrl(mediaUrl: string, type: 'image' | 'video' | 'audio' | 'file'): string
   {
-    const baseUrl = 'https://fly1919.github.io/adapter-yunhupro/';
+    const baseUrl = this.config.externalMediaProxyBaseUrl || 'https://fly1919.github.io/adapter-yunhupro/';
     const url = new URL('proxy.html', baseUrl);
     url.searchParams.set('url', mediaUrl);
     url.searchParams.set('type', type);
