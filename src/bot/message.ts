@@ -18,6 +18,40 @@ function getMixedMediaImageStyle(bot: YunhuBot): string
   return `max-width:${maxWidth}%;height:auto;`;
 }
 
+function isPublicHttpMediaUrl(src: string): boolean
+{
+  try
+  {
+    const url = new URL(src);
+    if (url.protocol !== 'http:' && url.protocol !== 'https:')
+    {
+      return false;
+    }
+
+    const host = url.hostname.toLowerCase();
+    if (!host || host === 'localhost' || host === '::1')
+    {
+      return false;
+    }
+
+    if (/^\d{1,3}(?:\.\d{1,3}){3}$/.test(host))
+    {
+      const parts = host.split('.').map(part => Number(part));
+      const [a, b] = parts;
+      if (a === 10) return false;
+      if (a === 127) return false;
+      if (a === 169 && b === 254) return false;
+      if (a === 192 && b === 168) return false;
+      if (a === 172 && b >= 16 && b <= 31) return false;
+    }
+
+    return true;
+  } catch
+  {
+    return false;
+  }
+}
+
 function buildAudioA2uiJsonl(url: string, description: string): string
 {
   const surfaceId = `audio-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -280,16 +314,23 @@ async function renderForwardElement(context: ForwardRenderContext, element: Forw
         }
         break;
       }
-    case 'audio':
-      {
-        const src = String(attrs.src || '');
-        if (src)
+      case 'audio':
         {
-          const uploadAudio = await context.bot.internal.uploadAudioKey(src);
-          context.html += `<a href="${escapeHtml(uploadAudio.url)}" target="_blank" rel="noopener noreferrer">[音频]</a>`;
+          const src = String(attrs.src || '');
+          if (src)
+          {
+            if (isPublicHttpMediaUrl(src))
+            {
+              const uploadAudio = await context.bot.internal.uploadAudioKey(src);
+              context.html += `<a href="${escapeHtml(uploadAudio.url)}" target="_blank" rel="noopener noreferrer">[音频]</a>`;
+            } else
+            {
+              const uploadAudio = await context.bot.internal.uploadAudioKey(src);
+              context.html += `<a href="${escapeHtml(uploadAudio.url)}" target="_blank" rel="noopener noreferrer">[音频]</a>`;
+            }
+          }
+          break;
         }
-        break;
-      }
     case 'file':
       {
         const src = String(attrs.src || '');
@@ -642,22 +683,57 @@ async function _visit(context: any, element: h)
         break;
 
       case 'audio':
-        await context.flush();
-        context.sendType = 'a2ui';
-        try
         {
-          const uploadAudio = await context.bot.internal.uploadAudioKey(element.attrs.src);
-          const description = String(element.attrs.title || '');
-          context.a2uiMessages = buildAudioA2uiJsonl(uploadAudio.url, description);
+          const src = String(element.attrs.src || '');
+          if (!src)
+          {
+            break;
+          }
+
           await context.flush();
-        } catch (error)
-        {
-          const isSizeLimitError = error instanceof SizeLimitError;
-          const errorMsg = isSizeLimitError ? '[音频大小超限]' : '[音频上传失败]';
-          context.bot.loggerError(`${errorMsg}: ${error}`);
-          context.sendType = 'text';
-          context.text += errorMsg;
-          await context.flush();
+
+          if (isPublicHttpMediaUrl(src))
+          {
+            context.sendType = 'a2ui';
+            try
+            {
+              const uploadAudio = await context.bot.internal.uploadAudioKey(src);
+              const description = String(element.attrs.title || '');
+              context.a2uiMessages = buildAudioA2uiJsonl(uploadAudio.url, description);
+              await context.flush();
+            } catch (error)
+            {
+              const isSizeLimitError = error instanceof SizeLimitError;
+              const errorMsg = isSizeLimitError ? '[音频大小超限]' : '[音频上传失败]';
+              context.bot.loggerError(`${errorMsg}: ${error}`);
+              context.sendType = 'text';
+              context.text += errorMsg;
+              await context.flush();
+            }
+          } else
+          {
+            context.sendType = 'video';
+            try
+            {
+              const uploadAudio = await context.bot.internal.uploadAudioKey(src);
+              if (context.payload?.content)
+              {
+                context.payload.content.videoKey = uploadAudio.key;
+              } else
+              {
+                context.videoKey = uploadAudio.key;
+              }
+              await context.flush();
+            } catch (error)
+            {
+              const isSizeLimitError = error instanceof SizeLimitError;
+              const errorMsg = isSizeLimitError ? '[音频大小超限]' : '[音频上传失败]';
+              context.bot.loggerError(`${errorMsg}: ${error}`);
+              context.sendType = 'text';
+              context.text += errorMsg;
+              await context.flush();
+            }
+          }
         }
         break;
 
