@@ -1,11 +1,8 @@
-import { Context } from 'koishi';
-import { } from 'koishi-plugin-ffmpeg';
 import { createHash } from 'node:crypto';
-import { writeFileSync, readFileSync, unlinkSync } from 'node:fs';
+import { readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
-
-import { compressVideo, parseRgbaToHex } from '../utils/utils';
+import { basename, join } from 'node:path';
+import { } from 'koishi-plugin-ffmpeg';
 import { BaseUploader } from './BaseUploader';
 import { YunhuBot } from '../bot/bot';
 import { SizeLimitError } from '../utils/types';
@@ -14,12 +11,13 @@ export class AudioUploader extends BaseUploader
 {
   constructor(token: string, apiendpoint: string, bot: YunhuBot)
   {
-    super(token, apiendpoint, 'video', bot);
+    super(token, apiendpoint, 'file', bot);
   }
 
   async upload(url: string): Promise<string>
   {
-    return this.processUpload(url);
+    const result = await this.processUpload(url, false);
+    return result;
   }
 
   async uploadGetKey(url: string): Promise<{ url: string; key: string; }>
@@ -27,90 +25,69 @@ export class AudioUploader extends BaseUploader
     return this.processUpload(url, true);
   }
 
-  private async processUpload(url: string, returnKey: boolean = false): Promise<any>
+  private async processUpload(url: string, returnKey: true): Promise<{ url: string; key: string; }>;
+  private async processUpload(url: string, returnKey: false): Promise<string>;
+  private async processUpload(url: string, returnKey: boolean): Promise<string | { url: string; key: string; }>
   {
     if (url.length < 500)
     {
       this.bot.logInfo(url);
     }
 
+    if (/^https?:\/\//i.test(url))
+    {
+      return returnKey ? { url, key: '' } : url;
+    }
+
     const { data, filename, type } = await this.bot.http.file(url, { timeout: this.bot.config.uploadTimeout * 1000 });
     const audioBuffer = Buffer.from(data);
-    const audioFilename = filename || 'audio.mp3';
+    const originalName = filename || 'audio.mp3';
+    const safeName = basename(originalName).replace(/[\\/:*?"<>|]/g, '_');
+    const mimeType = type || 'audio/mpeg';
+    const extension = safeName.includes('.') ? safeName.substring(safeName.lastIndexOf('.') + 1) : (mimeType.split('/')[1] || 'mp3');
+
+    if (audioBuffer.length > this.MAX_SIZE)
+    {
+      const sizeMB = (audioBuffer.length / (1024 * 1024)).toFixed(2);
+      throw new SizeLimitError(`语音大小 ${sizeMB}MB 超出 ${this.MAX_SIZE / (1024 * 1024)}MB 限制`);
+    }
 
     let tempAudioInput: string | null = null;
-    let tempVideoOutput: string | null = null;
-    let finalBuffer: Buffer;
 
     try
     {
-      tempAudioInput = join(tmpdir(), `audio_${Date.now()}_${audioFilename}`);
+      tempAudioInput = join(tmpdir(), `audio_${Date.now()}_${safeName}`);
       writeFileSync(tempAudioInput, audioBuffer);
 
-      tempVideoOutput = join(tmpdir(), `video_from_audio_${Date.now()}.mp4`);
-      const hexColor = parseRgbaToHex(this.bot.config.audioBackgroundColor || 'rgba(128, 0, 128, 1)');
-
-      await (this.bot.ctx as Context).ffmpeg.builder()
-        .outputOption('-f', 'lavfi')
-        .outputOption('-i', `color=c=${hexColor}:s=640x480:r=1`)
-        .input(tempAudioInput)
-        .outputOption('-shortest')
-        .outputOption('-c:v', 'libx264')
-        .outputOption('-c:a', 'aac')
-        .outputOption('-b:a', '128k')
-        .outputOption('-preset', 'fast')
-        .run('file', tempVideoOutput);
-
-      const convertedVideoBuffer = readFileSync(tempVideoOutput);
-      if (convertedVideoBuffer.length > this.MAX_SIZE)
-      {
-        finalBuffer = await compressVideo(this.bot, convertedVideoBuffer, this.MAX_SIZE);
-      } else
-      {
-        finalBuffer = convertedVideoBuffer;
-      }
-
-      if (finalBuffer.length > this.MAX_SIZE)
-      {
-        const sizeMB = (finalBuffer.length / (1024 * 1024)).toFixed(2);
-        throw new SizeLimitError(`音频转换后的视频大小${sizeMB}MB超过${this.MAX_SIZE / (1024 * 1024)}MB限制`);
-      }
-
       const form = new FormData();
-      const blob = new Blob([Buffer.from(finalBuffer)], { type: 'video/mp4' });
-      const videoFilenameBase = audioFilename.includes('.') ? audioFilename.substring(0, audioFilename.lastIndexOf('.')) : audioFilename;
-      const videoFilename = `${videoFilenameBase}.mp4`;
-      form.append('video', blob, videoFilename);
-      const videoKey = await this.sendFormData(form);
+      const blob = new Blob([readFileSync(tempAudioInput)], { type: mimeType });
+      const uploadName = safeName.includes('.') ? safeName : `${safeName}.${extension}`;
+      form.append('file', blob, uploadName);
+
+      const fileKey = await this.sendFormData(form);
 
       const hash = createHash('md5');
-      hash.update(Buffer.from(finalBuffer));
-      const videoHash = hash.digest('hex');
-      const videoBase = this.bot.config.resourceVideoEndpoint || this.bot.config.resourceEndpoint;
-      const videoUrl = `${videoBase}${videoHash}.mp4`;
-      this.bot.logInfo(`生成的音频视频URL: ${videoUrl}`);
+      hash.update(audioBuffer);
+      const audioHash = hash.digest('hex');
+      const audioBase = this.bot.config.resourceFileEndpoint || this.bot.config.resourceEndpoint;
+      const audioUrl = `${audioBase}${audioHash}.${extension}`;
+      this.bot.logInfo(`生成的语音URL: ${audioUrl}`);
 
-      if (returnKey)
-      {
-        return {
-          url: videoUrl,
-          key: videoKey
-        };
-      }
-      return videoUrl;
+      const result = {
+        url: audioUrl,
+        key: fileKey,
+      };
+
+      return returnKey ? result : result.url;
     } catch (error: any)
     {
-      this.bot.loggerError('音频处理或上传失败', error);
-      throw new Error(`音频处理失败: ${error.message}`);
+      this.bot.loggerError('语音处理或上传失败:', error);
+      throw new Error(`语音处理失败: ${error.message}`);
     } finally
     {
       if (tempAudioInput)
       {
         try { unlinkSync(tempAudioInput); } catch { }
-      }
-      if (tempVideoOutput)
-      {
-        try { unlinkSync(tempVideoOutput); } catch { }
       }
     }
   }

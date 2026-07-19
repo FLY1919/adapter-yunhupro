@@ -450,7 +450,7 @@ export async function compressVideo(bot: YunhuBot, videoBuffer: Buffer, maxSize:
 
     tempOutput = join(tmpdir(), `compress_output_${Date.now()}.mp4`);
 
-    await (bot.ctx as Context).ffmpeg.builder()
+    await bot.ctx.ffmpeg.builder()
       .input(tempInput)
       .outputOption('-c:v', 'libx264')
       .outputOption('-crf', String(targetCrf))

@@ -18,7 +18,43 @@ function getMixedMediaImageStyle(bot: YunhuBot): string
   return `max-width:${maxWidth}%;height:auto;`;
 }
 
-function setMixedTextMode(context: { sendType?: 'text' | 'image' | 'video' | 'file' | 'markdown' | 'html' | 'html-webproxy'; }, bot: YunhuBot)
+function buildAudioA2uiJsonl(url: string, description: string): string
+{
+  const surfaceId = `audio-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const messages = [
+    {
+      version: 'v0.9',
+      createSurface: {
+        surfaceId,
+        catalogId: 'https://a2ui.org/specification/v0_9/basic_catalog.json',
+        sendDataModel: true,
+      },
+    },
+    {
+      version: 'v0.9',
+      updateComponents: {
+        surfaceId,
+        components: [
+          {
+            id: 'root',
+            component: 'Column',
+            children: ['player'],
+          },
+          {
+            id: 'player',
+            component: 'AudioPlayer',
+            url,
+            description,
+          },
+        ],
+      },
+    },
+  ];
+
+  return messages.map(item => `\`\`\`json\n${JSON.stringify(item)}\n\`\`\``).join('\n\n');
+}
+
+function setMixedTextMode(context: { sendType?: 'text' | 'image' | 'video' | 'file' | 'markdown' | 'html' | 'html-webproxy' | 'a2ui'; }, bot: YunhuBot)
 {
   context.sendType = isHtmlMixedMedia(bot) ? 'html' : 'markdown';
 }
@@ -344,14 +380,13 @@ export class YunhuMessageEncoder extends MessageEncoder<Context, YunhuBot>
 {
   // 使用 payload 存储待发送的消息
   private payload: Dict;
-  private sendType: 'text' | 'image' | 'video' | 'file' | 'markdown' | 'html' | 'html-webproxy' | undefined = undefined;
+  private sendType: 'text' | 'image' | 'video' | 'file' | 'markdown' | 'html' | 'html-webproxy' | 'a2ui' | undefined = undefined;
   private html = "";
   private text = "";
   private markdown = "";
   private atPayload: string[] = [];
   private buttons: Button[] = [];
-  private message: Dict = [];
-  private switch_message: boolean = true;
+  private a2uiMessages = '';
   private messageId: string;
 
   getMessageId(): string
@@ -415,6 +450,7 @@ export class YunhuMessageEncoder extends MessageEncoder<Context, YunhuBot>
       this.html = "";
       this.text = "";
       this.markdown = "";
+      this.a2uiMessages = '';
       this.message = [];
       this.atPayload = [];
       this.buttons = [];
@@ -422,9 +458,29 @@ export class YunhuMessageEncoder extends MessageEncoder<Context, YunhuBot>
       delete this.payload.content.buttons;
     }
 
-    if (!this.payload.content.imageKey && !this.payload.content.fileKey && !this.payload.content.videoKey && !this.text && !this.markdown && !this.html && !this.buttons.length)
+    if (!this.payload.content.imageKey && !this.payload.content.fileKey && !this.payload.content.videoKey && !this.text && !this.markdown && !this.html && !this.buttons.length && !this.a2uiMessages)
     {
       return; // Nothing to send.
+    }
+
+    if (this.sendType === 'a2ui')
+    {
+      const a2uiPayload = {
+        recvId: this.payload.recvId,
+        recvType: this.payload.recvType,
+        contentType: 'a2ui',
+        content: { text: this.a2uiMessages },
+        parentId: this.payload.parentId,
+      };
+
+      this.bot.logInfo('将发送 payload：\n', JSON.stringify(a2uiPayload, null, 2));
+      const response = await this.bot.internal.sendMessage(a2uiPayload);
+      if (response.code === 1 && response.data?.messageInfo?.msgId)
+      {
+        this.messageId = response.data.messageInfo.msgId;
+      }
+      await reset.call(this);
+      return;
     }
 
     if (!this.sendType)
@@ -587,18 +643,12 @@ async function _visit(context: any, element: h)
 
       case 'audio':
         await context.flush();
-        context.sendType = 'video'; // 最终发送的是视频
+        context.sendType = 'a2ui';
         try
         {
           const uploadAudio = await context.bot.internal.uploadAudioKey(element.attrs.src);
-          const audiokey = uploadAudio.key;
-          if (context.payload?.content)
-          {
-            context.payload.content.videoKey = audiokey;
-          } else
-          {
-            context.videoKey = audiokey;
-          }
+          const description = String(element.attrs.title || '');
+          context.a2uiMessages = buildAudioA2uiJsonl(uploadAudio.url, description);
           await context.flush();
         } catch (error)
         {
