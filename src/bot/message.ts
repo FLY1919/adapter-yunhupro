@@ -18,6 +18,11 @@ function getMixedMediaImageStyle(bot: YunhuBot): string
   return `max-width:${maxWidth}%;height:auto;`;
 }
 
+function wrapBlockHtml(content: string): string
+{
+  return `<div>${content}</div>`;
+}
+
 function isPublicHttpMediaUrl(src: string): boolean
 {
   try
@@ -295,10 +300,10 @@ async function renderForwardElement(context: ForwardRenderContext, element: Forw
           if (isHtmlWebProxyMixedMedia(context.bot))
           {
             const previewUrl = context.bot.buildExternalMediaUrl(uploadImage.url, 'image');
-            context.html += `<a href="${escapeHtml(previewUrl)}"><img src="${escapeHtml(uploadImage.url)}" alt="picture" style="${imageStyle}"></a>`;
+            context.html += wrapBlockHtml(`<a href="${escapeHtml(previewUrl)}"><img src="${escapeHtml(uploadImage.url)}" alt="picture" style="${imageStyle}"></a>`);
           } else
           {
-            context.html += `<img src="${escapeHtml(uploadImage.url)}" alt="picture" style="${imageStyle}">`;
+            context.html += wrapBlockHtml(`<img src="${escapeHtml(uploadImage.url)}" alt="picture" style="${imageStyle}">`);
           }
         }
         break;
@@ -596,7 +601,7 @@ async function _visit(context: any, element: h)
         const content = element.attrs.content.replace(/<br>/g, '\n');
         context.text += context.sendType === "text" ? content : '';
         context.markdown += context.sendType === 'markdown' ? content : '';
-        context.html += content;
+        context.html += escapeHtml(content).replace(/\n/g, '<br>');
         break;
 
       case 'img':
@@ -618,15 +623,15 @@ async function _visit(context: any, element: h)
           {
             const previewUrl = context.bot.buildExternalMediaUrl(uploadImage.url, 'image');
             context.markdown += context.sendType === 'markdown' ? `\n![picture](${previewUrl})\n` : '';
-            context.html += `<a href="${previewUrl}"><img src="${uploadImage.url}" alt="picture" style="${imageStyle}"></a>`;
+            context.html += wrapBlockHtml(`<a href="${previewUrl}"><img src="${uploadImage.url}" alt="picture" style="${imageStyle}"></a>`);
           } else if (useHtmlMixedMedia)
           {
             context.markdown += context.sendType === 'markdown' ? `\n![picture](${uploadImage.url})\n` : '';
-            context.html += `<img src="${uploadImage.url}" alt="picture" style="${imageStyle}">`;
+            context.html += wrapBlockHtml(`<img src="${uploadImage.url}" alt="picture" style="${imageStyle}">`);
           } else
           {
             context.markdown += context.sendType === 'markdown' ? `\n![picture](${uploadImage.url})\n` : '';
-            context.html += `<img src="${uploadImage.url}" alt="picture" style="${imageStyle}">`;
+            context.html += wrapBlockHtml(`<img src="${uploadImage.url}" alt="picture" style="${imageStyle}">`);
           }
           if (context.sendType === 'image')
           {
