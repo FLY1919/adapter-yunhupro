@@ -33,7 +33,7 @@
 :::tip
 `friend-added` 、`friend-deleted`事件不存在于 [Satori 官方文档](https://satori.chat/zh-CN/resources/friend.html#friend-request) 中。
 
-不过你可以在这里找到他们的实际应用 -> <https://github.com/satorijs/satori/blob/main/adapters/qq/src/utils.ts#L186>
+不过你可以在这里找到他们的实际应用 -> <https://github.com/satorijs/satori/blob/main/adapters/qq/src/utils.ts#L204>
 :::
 
 ## 群组角色变动事件
