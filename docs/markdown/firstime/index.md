@@ -28,13 +28,13 @@
 
 ## 连接方式对比
 
-| 特性     | WebSocket | Webhook        |
-| -------- | --------- | -------------- |
-| 公网 IP  | 不需要    | 需要           |
-| 配置难度 | ⭐ 简单    | ⭐⭐⭐ 复杂       |
-| 多机器人 | ✅ 无限制  | ⚠️ 需要不同路径 |
-| 消息混乱 | 不会      | ⚠️ 路径相同时会 |
-| 推荐程度 | ⭐⭐⭐⭐⭐     | ⭐⭐⭐            |
+| 特性     | WebSocket | Webhook          |
+| -------- | --------- | ---------------- |
+| 公网 IP  | ✅ 不需要  | ⚠️ 需要           |
+| 配置难度 | ✅ 简单    | ⚠️ 复杂           |
+| 多机器人 | ✅ 无限制  | ⚠️ 需要不同路径   |
+| 消息混乱 | ✅ 不会    | ⚠️ 路径相同时会   |
+| 推荐程度 | ✅ 推荐    | ⚠️ 有特殊需求才用 |
 
 **推荐使用 WebSocket 方式**，除非您有特殊需求必须使用 Webhook。
 
@@ -70,16 +70,11 @@
 
 完成以上公共前置配置后，根据您的实际部署选择对应的教程继续阅读：
 
-### WebSocket 方式（推荐）：请继续阅读 [start-websocket](./start-websocket)
-
-* 无需公网 IP，配置简单
-* 通过 WebSocket 长连接接收事件推送
-* 适合绝大多数本地和云服务器部署
-
-### Webhook 方式：请继续阅读 [start-webhook](./start-webhook)
-
-* 需要公网访问能力
-* 通过 Webhook 接收事件推送
-* 需要配置监听路径并登记订阅地址
-
-> **两者只需选择其一**，请勿混用两篇教程的配置步骤。
+<div style="display:flex;flex-wrap:wrap;gap:16px;justify-content:space-between;align-items:stretch;margin:16px 0">
+  <a href="./start-webhook" style="flex:1 1 46%;min-width:240px;text-decoration:none;display:flex;flex-direction:column;justify-content:space-between;border:1px solid var(--vp-c-divider);border-radius:12px;padding:16px 20px;transition:border-color .2s,border-style .2s">
+    <span style="font-size:15px;font-weight:600;color:var(--vp-c-brand);margin-top:4px">Webhook 方式接入教程</span>
+ </a>
+  <a href="./start-websocket" style="flex:1 1 46%;min-width:240px;text-decoration:none;display:flex;flex-direction:column;justify-content:space-between;border:1px solid var(--vp-c-divider);border-radius:12px;padding:16px 20px;text-align:right;transition:border-color .2s,border-style .2s">
+    <span style="font-size:15px;font-weight:600;color:var(--vp-c-brand);margin-top:4px">WebSocket 方式接入教程（推荐）</span>
+  </a>
+</div>
