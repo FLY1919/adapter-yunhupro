@@ -31,10 +31,10 @@
 :::tip
 **推荐使用 WebSocket 方式**
 
-- ✅ 无需公网 IP
-- ✅ 配置简单
-- ✅ 不会出现消息混乱
-- ✅ 支持自动重连
+* ✅ 无需公网 IP
+* ✅ 配置简单
+* ✅ 不会出现消息混乱
+* ✅ 支持自动重连
 
 :::
 
@@ -60,15 +60,15 @@
 
 使用 Webhook 方式时，如果您需要运行多个云湖机器人实例：
 
-- 每个实例必须配置**不同的监听路径**
-- 相同的路径会导致消息混乱
+* 每个实例必须配置**不同的监听路径**
+* 相同的路径会导致消息混乱
 
 **推荐做法**：使用 Koishi 的多开插件功能，为每个机器人实例配置不同的路径。
 
 例如：
 
-- 机器人实例 1：`/yunhu1`
-- 机器人实例 2：`/yunhu2`
+* 机器人实例 1：`/yunhu1`
+* 机器人实例 2：`/yunhu2`
 
 **为什么会混乱？**
 
@@ -176,42 +176,16 @@
 
 每个实例必须配置不同的监听路径（`path`），否则会导致消息混乱。
 
-## 配置示例
-
-### WebSocket 方式（推荐）
-
-```yaml
-token: "your_bot_token_here"
-type: websocket
-serverPath: wss://ws.jwzhd.com/subscribe
-loggerinfo: false
-uploadTimeout: 120
-enableStream: false
-maxRetries: 3
-```
-
-### Webhook 方式
-
-```yaml
-token: "your_bot_token_here"
-type: webhook
-path: /yunhu
-loggerinfo: false
-uploadTimeout: 120
-enableStream: false
-maxRetries: 3
-```
-
 ## 常见问题
 
 ### Q: 为什么推荐使用 WebSocket 方式？
 
 A: WebSocket 方式有以下优势：
 
-- 无需公网 IP，本地开发更方便
-- 不会出现消息混乱问题
-- 支持自动重连，连接更稳定
-- 配置更简单
+* 无需公网 IP，本地开发更方便
+* 不会出现消息混乱问题
+* 支持自动重连，连接更稳定
+* 配置更简单
 
 ### Q: 我可以同时使用 WebSocket 和 Webhook 吗？
 
@@ -221,9 +195,9 @@ A: 不可以。每个机器人实例只能选择一种连接方式。如果需�
 
 A: 如果您的部署环境有以下特点，可以考虑使用 Webhook：
 
-- 已经有公网 IP 或域名
-- 需要通过反向代理进行流量管理
-- 有特殊的网络架构要求
+* 已经有公网 IP 或域名
+* 需要通过反向代理进行流量管理
+* 有特殊的网络架构要求
 
 ### Q: 如何知道机器人的 ID？
 
