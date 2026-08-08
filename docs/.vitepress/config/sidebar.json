@@ -11,7 +11,7 @@
         "items": [
           {
             "text": "首次接入",
-            "link": "/markdown/firstime/index"
+            "link": "/markdown/firstime/start"
           },
           {
             "text": "WebSocket 接入",
