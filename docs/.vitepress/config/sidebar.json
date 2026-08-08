@@ -122,28 +122,6 @@
             ]
           },
           {
-            "text": "看板管理",
-            "collapsed": true,
-            "items": [
-              {
-                "text": "设置用户看板",
-                "link": "/markdown/dev/yunhu-official/449/1"
-              },
-              {
-                "text": "设置全局看板",
-                "link": "/markdown/dev/yunhu-official/449/2"
-              },
-              {
-                "text": "取消用户看板",
-                "link": "/markdown/dev/yunhu-official/449/3"
-              },
-              {
-                "text": "取消全部看板",
-                "link": "/markdown/dev/yunhu-official/449/4"
-              }
-            ]
-          },
-          {
             "text": "群组管理",
             "collapsed": true,
             "items": [
@@ -182,6 +160,28 @@
               {
                 "text": "给用户移除标签",
                 "link": "/markdown/dev/yunhu-official/456/9"
+              }
+            ]
+          },
+          {
+            "text": "看板管理",
+            "collapsed": true,
+            "items": [
+              {
+                "text": "设置用户看板",
+                "link": "/markdown/dev/yunhu-official/449/1"
+              },
+              {
+                "text": "设置全局看板",
+                "link": "/markdown/dev/yunhu-official/449/2"
+              },
+              {
+                "text": "取消用户看板",
+                "link": "/markdown/dev/yunhu-official/449/3"
+              },
+              {
+                "text": "取消全部看板",
+                "link": "/markdown/dev/yunhu-official/449/4"
               }
             ]
           },
