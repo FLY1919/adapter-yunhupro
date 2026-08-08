@@ -16,12 +16,6 @@ export const decodeUser = (user: Yunhu.Sender): Universal.User => ({
   isBot: false,
 });
 
-// 转义正则表达式特殊字符的函数
-function escapeRegExp(string: string): string
-{
-  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
 function decodeYunhuEmoji(text: string): string
 {
   if (!text) return '';
@@ -56,7 +50,7 @@ export async function clearMsg(bot: YunhuBot, message: Yunhu.Message, sender: Yu
       const mentionedNames: string[] = [];
       while ((match = mentionRegex.exec(textContent)) !== null)
       {
-        mentionedNames.push(match[1]);
+        mentionedNames.push(match[1].trim());
       }
 
       // 按首次出现顺序获取唯一的用户名
@@ -72,11 +66,11 @@ export async function clearMsg(bot: YunhuBot, message: Yunhu.Message, sender: Yu
         }
       });
 
-      nameToIdMap.forEach((id, name) =>
+      textContent = textContent.replace(mentionRegex, (match, rawName) =>
       {
-        const escapedName = escapeRegExp(name);
-        const replaceRegex = new RegExp(`@${escapedName}[\\u200b\\u2068\\u2069\\u2066\\u2067]`, 'g');
-        textContent = textContent.replace(replaceRegex, h.at(id, { name }).toString());
+        const name = rawName.trim();
+        const id = nameToIdMap.get(name);
+        return id ? h.at(id, { name }).toString() : match;
       });
     }
   }

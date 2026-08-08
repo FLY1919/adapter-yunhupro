@@ -771,6 +771,7 @@ async function _visit(context: any, element: h)
             userName = userId;
           }
         }
+        if (userName) userName = String(userName).trim();
         const atText = `@${userName}​ `;
         context.text += atText;
         context.markdown += atText;
