@@ -115,7 +115,7 @@ export class YunhuWebSocket
       if (this.ws && this.ws.readyState === WebSocket.OPEN)
       {
         this.ws.ping();
-        this.bot.logInfo('发送WebSocket心跳');
+        // this.bot.logInfo('发送WebSocket心跳');
       }
     }, 30000);
   }

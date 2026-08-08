@@ -234,8 +234,6 @@ export class YunhuBot extends Bot<Context, Config>
   {
     try
     {
-      this.logInfo('正在获取机器人ID...');
-
       // 向不存在的群组发送消息
       const response = await this.http.post(`/bot/send?token=${this.config.token}`, {
         recvId: '不存在的群组ID',
