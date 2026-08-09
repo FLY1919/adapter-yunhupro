@@ -77,7 +77,7 @@ export class YunhuWebSocket
 
       this.ws.on('close', (code, reason) =>
       {
-        this.bot.logInfo(`[${this.bot.selfId}] WebSocket连接已关闭 (code: ${code}, reason: ${reason.toString()})`);
+        this.bot.loggerInfo(`[${this.bot.selfId}] WebSocket连接已关闭 (code: ${code}, reason: ${reason.toString()})`);
         this.stopHeartbeat();
         this.bot.offline();
 
