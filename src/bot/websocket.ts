@@ -49,7 +49,7 @@ export class YunhuWebSocket
 
       this.ws.on('open', () =>
       {
-        this.bot.loggerInfo(`[${this.bot.selfId}] WebSocket连接已建立`);
+        this.bot.loggerInfo(`[${this.bot.selfId}] WebSocket已连接`);
         this.bot.online();
         this.startHeartbeat();
       });
@@ -77,7 +77,7 @@ export class YunhuWebSocket
 
       this.ws.on('close', (code, reason) =>
       {
-        this.bot.loggerInfo(`[${this.bot.selfId}] WebSocket连接已关闭 (code: ${code}, reason: ${reason.toString()})`);
+        this.bot.logInfo(`[${this.bot.selfId}] WebSocket连接已关闭 (code: ${code}, reason: ${reason.toString()})`);
         this.stopHeartbeat();
         this.bot.offline();
 
