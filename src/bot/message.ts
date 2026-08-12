@@ -203,7 +203,8 @@ async function renderForwardMessage(bot: YunhuBot, attrs: Dict, children: Fragme
   const name = escapeHtml(getForwardDisplayName(bot, authorAttrs || attrs));
   const time = formatForwardTime(attrs.time);
   const timeText = time ? ` <span style="color:#999;font-size:12px;">${time}</span>` : '';
-  return `<div style="margin:8px 0;padding:10px 12px;border:1px solid #e6e8ec;border-radius:8px;background:#fff;"><div style="font-size:12px;line-height:1.4;margin-bottom:6px;color:#666;"><strong>${name}</strong>${timeText}</div><div style="font-size:14px;line-height:1.6;word-break:break-word;">${body}</div></div>`;
+  // 转发卡片背景固定为白色，显式指定黑色文字，避免客户端深色主题把正文反转为白色
+  return `<div style="margin:8px 0;padding:10px 12px;border:1px solid #e6e8ec;border-radius:8px;background:#fff;"><div style="font-size:12px;line-height:1.4;margin-bottom:6px;color:#666;"><strong>${name}</strong>${timeText}</div><div style="font-size:14px;line-height:1.6;word-break:break-word;color:#000;">${body}</div></div>`;
 }
 
 async function renderForwardCard(bot: YunhuBot, fragment: Fragment): Promise<string>
