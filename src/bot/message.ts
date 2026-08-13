@@ -203,8 +203,8 @@ async function renderForwardMessage(bot: YunhuBot, attrs: Dict, children: Fragme
   const name = escapeHtml(getForwardDisplayName(bot, authorAttrs || attrs));
   const time = formatForwardTime(attrs.time);
   const timeText = time ? ` <span style="color:#999;font-size:12px;">${time}</span>` : '';
-  // 转发卡片背景固定为白色，显式指定黑色文字，避免客户端深色主题把正文反转为白色
-  return `<div style="margin:8px 0;padding:10px 12px;border:1px solid #e6e8ec;border-radius:8px;background:#fff;"><div style="font-size:12px;line-height:1.4;margin-bottom:6px;color:#666;"><strong>${name}</strong>${timeText}</div><div style="font-size:14px;line-height:1.6;word-break:break-word;color:#000;">${body}</div></div>`;
+  // 合并转发使用米白色背景，并显式指定黑色文字，避免深色主题把正文反转为白色
+  return `<div style="margin:8px 0;padding:10px 12px;border:1px solid #e6e8ec;border-radius:8px;background:#fdf6ec;"><div style="font-size:12px;line-height:1.4;margin-bottom:6px;color:#666;"><strong>${name}</strong>${timeText}</div><div style="font-size:14px;line-height:1.6;word-break:break-word;color:#000;">${body}</div></div>`;
 }
 
 async function renderForwardCard(bot: YunhuBot, fragment: Fragment): Promise<string>
@@ -248,7 +248,7 @@ async function renderForwardCard(bot: YunhuBot, fragment: Fragment): Promise<str
 
   if (!cards.length) return '';
 
-  return `<details style="width:100%;box-sizing:border-box;border:1px solid #dfe3e8;border-radius:10px;background:#f7f8fa;overflow:hidden;"><summary style="list-style:none;cursor:pointer;padding:10px 12px;background:#fff;border-bottom:1px solid #e6e8ec;font-size:14px;font-weight:600;color:#333;">合并聊天记录</summary><div style="padding:8px 10px;">${cards.join('')}</div></details>`;
+  return `<details style="width:100%;box-sizing:border-box;border:1px solid #dfe3e8;border-radius:10px;background:#f8f1e7;overflow:hidden;"><summary style="list-style:none;cursor:pointer;padding:10px 12px;background:#fdf6ec;border-bottom:1px solid #e6e8ec;font-size:14px;font-weight:600;color:#333;">合并聊天记录</summary><div style="padding:8px 10px;">${cards.join('')}</div></details>`;
 }
 
 async function renderForwardElement(context: ForwardRenderContext, element: ForwardElement)
@@ -320,23 +320,23 @@ async function renderForwardElement(context: ForwardRenderContext, element: Forw
         }
         break;
       }
-      case 'audio':
+    case 'audio':
+      {
+        const src = String(attrs.src || '');
+        if (src)
         {
-          const src = String(attrs.src || '');
-          if (src)
+          if (isPublicHttpMediaUrl(src))
           {
-            if (isPublicHttpMediaUrl(src))
-            {
-              const uploadAudio = await context.bot.internal.uploadAudioKey(src);
-              context.html += `<a href="${escapeHtml(uploadAudio.url)}" target="_blank" rel="noopener noreferrer">[音频]</a>`;
-            } else
-            {
-              const uploadAudio = await context.bot.internal.uploadAudioKey(src);
-              context.html += `<a href="${escapeHtml(uploadAudio.url)}" target="_blank" rel="noopener noreferrer">[音频]</a>`;
-            }
+            const uploadAudio = await context.bot.internal.uploadAudioKey(src);
+            context.html += `<a href="${escapeHtml(uploadAudio.url)}" target="_blank" rel="noopener noreferrer">[音频]</a>`;
+          } else
+          {
+            const uploadAudio = await context.bot.internal.uploadAudioKey(src);
+            context.html += `<a href="${escapeHtml(uploadAudio.url)}" target="_blank" rel="noopener noreferrer">[音频]</a>`;
           }
-          break;
         }
+        break;
+      }
     case 'file':
       {
         const src = String(attrs.src || '');
