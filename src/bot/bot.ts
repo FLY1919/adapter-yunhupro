@@ -42,6 +42,11 @@ export class YunhuBot extends Bot<Context, Config>
     return this.internal.getGuild(guildId);
   }
 
+  async getFriendList(next?: string): Promise<Universal.List<Universal.User>>
+  {
+    return null;
+  }
+
   async getGuildList(next?: string): Promise<Universal.List<Universal.Guild>>
   {
     return null;
