@@ -427,6 +427,7 @@ export class YunhuMessageEncoder extends MessageEncoder<Context, YunhuBot>
 {
   // 使用 payload 存储待发送的消息
   private payload: Dict;
+  private message: h[] = [];
   private sendType: 'text' | 'image' | 'video' | 'file' | 'markdown' | 'html' | 'html-webproxy' | 'a2ui' | undefined = undefined;
   private html = "";
   private text = "";
@@ -466,20 +467,38 @@ export class YunhuMessageEncoder extends MessageEncoder<Context, YunhuBot>
   async addResult(data: any)
   {
     const message = data;
-    //this.message.push(message)
     const session = this.bot.session();
+    session.type = 'send';
     session.channelId = this.channelId;
-    //session.event.message.id = message.msgId
+    session.isDirect = this.channelId.startsWith('private:') || this.session?.isDirect || false;
+    session.guildId = this.session?.guildId;
+    if (!session.guildId && !session.isDirect)
+    {
+      const [type, id] = this.channelId.split(':');
+      if (type === 'group')
+      {
+        session.guildId = id;
+      }
+    }
+    session.userId = this.bot.selfId;
+    session.event.user = {
+      id: this.bot.selfId,
+      name: this.bot.user?.name,
+      avatar: this.bot.user?.avatar,
+      isBot: true,
+    };
+    const elements = [...(this.message.length ? this.message : this.session?.elements || [])];
     session.event.message = {
       id: message.msgId,
-      elements: message,
-      //等主播放假再改
+      elements,
+      content: elements.join(''),
+      user: session.event.user,
     };
-    //session.quote.id = message.parentId? message.parentId : undefined
-    if (message.parentId)
+    if (this.session?.quote)
     {
-      session.event.message.quote.id = message.parentId;
+      session.event.message.quote = this.session.quote;
     }
+    this.results.push(session.event.message);
     session.app.emit(session, 'send', session);
   }
 
@@ -525,6 +544,7 @@ export class YunhuMessageEncoder extends MessageEncoder<Context, YunhuBot>
       if (response.code === 1 && response.data?.messageInfo?.msgId)
       {
         this.messageId = response.data.messageInfo.msgId;
+        await this.addResult(response.data.messageInfo);
       }
       await reset.call(this);
       return;
@@ -567,6 +587,7 @@ export class YunhuMessageEncoder extends MessageEncoder<Context, YunhuBot>
     if (response.code === 1 && response.data?.messageInfo?.msgId)
     {
       this.messageId = response.data.messageInfo.msgId;
+      await this.addResult(response.data.messageInfo);
     }
 
     await reset.call(this);
