@@ -281,7 +281,7 @@ export class Internal
     const chatType = type === 'private' ? 'user' : type;
     const { before, after } = options;
     this.bot.logInfo(`获取消息列表，channelId: ${channelId}`);
-    const url = `/bot/messages?token=${this.token}&chat-id=${id}&chat-type=${chatType}&message-id=${messageId}&before=${before || 1}&after=${after || 1}`;
+    const url = `/bot/messages?token=${this.token}&chat-id=${id}&chat-type=${chatType}&message-id=${messageId}&before=${before ?? 1}&after=${after ?? 1}`;
     return this.bot.http.get(url);
   }
 
@@ -294,6 +294,27 @@ export class Internal
       response.data.list = response.data.list.filter(item => item.msgId === messageId);
     }
     return response;
+  }
+
+  async toUniversalMessage(msg: Types.Message): Promise<Universal.Message>
+  {
+    const sender: Types.Sender = {
+      senderId: msg.senderId,
+      senderNickname: msg.senderNickname,
+      senderAvatarUrl: void 0,
+      senderType: msg.senderType as 'user',
+      senderUserLevel: 'unknown',
+    };
+    const content = await clearMsg(this.bot, msg, sender);
+    return {
+      id: msg.msgId,
+      content,
+      user: {
+        id: msg.senderId,
+        name: msg.senderNickname,
+      },
+      timestamp: msg.sendTime,
+    };
   }
 
   async getMessage(channelId: string, messageId: string): Promise<Universal.Message>

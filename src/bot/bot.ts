@@ -1,5 +1,6 @@
 import { Bot, Context, Fragment, Logger, Universal } from 'koishi';
-import { SendOptions } from '@satorijs/protocol';
+import { BidiList, Direction, Order, SendOptions } from '@satorijs/protocol';
+import { Buffer } from 'node:buffer';
 import { Config } from '../config';
 import { YunhuMessageEncoder } from './message';
 import { fragmentToPayload } from './message';
@@ -37,24 +38,32 @@ export class YunhuBot extends Bot<Context, Config>
     return this.internal.getUser(userId);
   }
 
+  async getGuildMember(guildId: string, userId: string)
+  {
+    return this.internal.getGuildMember(guildId, userId);
+  }
+
+  // 平台未提供好友列表接口，返回空列表避免调用报错
+  async getFriendList(next?: string): Promise<Universal.List<Universal.Friend>>
+  {
+    return { data: [] };
+  }
+
+  // 平台未提供群组列表接口，返回空列表避免调用报错
+  async getGuildList(next?: string): Promise<Universal.List<Universal.Guild>>
+  {
+    return { data: [] };
+  }
+
+  // 平台未提供群成员列表接口，返回空列表避免调用报错
+  async getGuildMemberList(guildId: string, next?: string): Promise<Universal.List<Universal.GuildMember>>
+  {
+    return { data: [] };
+  }
+
   async getGuild(guildId: string)
   {
     return this.internal.getGuild(guildId);
-  }
-
-  async getFriendList(next?: string): Promise<Universal.List<Universal.User>>
-  {
-    return null;
-  }
-
-  async getGuildList(next?: string): Promise<Universal.List<Universal.Guild>>
-  {
-    return null;
-  }
-
-  async getGuildMemberList(guildId: string, next?: string): Promise<Universal.List<Universal.GuildMember>>
-  {
-    return null;
   }
 
   async getChannel(channelId: string, guildId?: string)
@@ -62,9 +71,10 @@ export class YunhuBot extends Bot<Context, Config>
     return this.internal.getChannel(channelId, guildId);
   }
 
+  // 平台未提供频道列表接口，返回空列表避免调用报错
   async getChannelList(guildId: string, next?: string): Promise<Universal.List<Universal.Channel>>
   {
-    return null;
+    return { data: [] };
   }
 
   buildExternalMediaUrl(mediaUrl: string, type: 'image' | 'video' | 'audio' | 'file'): string
@@ -84,6 +94,66 @@ export class YunhuBot extends Bot<Context, Config>
   async getMessage(channelId: string, messageId: string)
   {
     return this.internal.getMessage(channelId, messageId);
+  }
+
+  // 使用平台消息接口封装 Satori 标准消息列表
+  async getMessageList(channelId: string, next?: string, direction: Direction = 'before', limit?: number, order?: Order): Promise<BidiList<Universal.Message>>
+  {
+    const count = Math.max(1, limit ?? 10);
+    let before = 0;
+    let after = 0;
+
+    if (direction === 'after')
+    {
+      after = count;
+    } else if (direction === 'around')
+    {
+      before = Math.ceil(count / 2);
+      after = Math.floor(count / 2);
+    } else
+    {
+      before = count;
+    }
+
+    const response = await this.internal.getMessageList(channelId, next || '', { before, after });
+    if (response.code !== 1)
+    {
+      this.loggerError('获取消息列表失败:', response.msg);
+      throw new Error(`获取消息列表失败: ${response.msg}`);
+    }
+
+    const messages = await Promise.all((response.data?.list || []).map(item => this.internal.toUniversalMessage(item)));
+    if (order === 'asc')
+    {
+      messages.reverse();
+    }
+    return { data: messages };
+  }
+
+  // 使用平台上传器实现 Satori 标准上传接口
+  async createUpload(...uploads: Universal.Upload[]): Promise<string[]>
+  {
+    const urls: string[] = [];
+    for (const upload of uploads)
+    {
+      const mime = upload.type || 'application/octet-stream';
+      const dataUrl = `data:${mime};base64,${Buffer.from(upload.data).toString('base64')}`;
+
+      if (mime.startsWith('image/'))
+      {
+        urls.push(await this.internal.uploadImage(dataUrl));
+      } else if (mime.startsWith('video/'))
+      {
+        urls.push(await this.internal.uploadVideo(dataUrl));
+      } else if (mime.startsWith('audio/'))
+      {
+        urls.push(await this.internal.uploadAudio(dataUrl));
+      } else
+      {
+        urls.push(await this.internal.uploadFile(dataUrl));
+      }
+    }
+    return urls;
   }
 
   async sendMessage(channelId: string, content: Fragment, guildId?: string, options?: SendOptions): Promise<string[]>
