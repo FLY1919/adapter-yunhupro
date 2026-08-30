@@ -439,16 +439,18 @@ export class Internal
    * 禁言群成员
    * @param guildId 群组ID
    * @param userId 用户ID
-   * @param duration 禁言时长（秒），0表示解除禁言，-1表示永久禁言
+   * @param duration 禁言时长（毫秒），0表示解除禁言
    */
   async muteGuildMember(guildId: string, userId: string, duration: number): Promise<void>
   {
     // 云湖禁言接口只支持固定档位，这里将传入时长归一化到对应的档位
     const numericDuration = Number(duration);
-    const gagDuration = this.normalizeGagDuration(numericDuration);
-    if (gagDuration !== numericDuration)
+    // Koishi 传入的是毫秒，云湖 gag 字段要求的是秒
+    const durationSeconds = Math.ceil(numericDuration / 1000);
+    const gagDuration = this.normalizeGagDuration(durationSeconds);
+    if (gagDuration !== durationSeconds)
     {
-      this.bot.logInfo(`禁言时长 ${numericDuration} 秒已归一化为云湖支持的档位: ${gagDuration} 秒`);
+      this.bot.logInfo(`禁言时长 ${numericDuration} 毫秒已归一化为云湖支持的档位: ${gagDuration} 秒`);
     }
 
     const payload = {
