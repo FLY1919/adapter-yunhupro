@@ -16,6 +16,29 @@ export const decodeUser = (user: Yunhu.Sender): Universal.User => ({
   isBot: false,
 });
 
+function decodeRoles(sender: Yunhu.Sender): Universal.GuildRole[]
+{
+  return [{ id: sender.senderUserLevel, name: sender.senderUserLevel }];
+}
+
+function decodeAuthor(sender: Yunhu.Sender, bot: YunhuBot): Universal.User & Universal.GuildMember
+{
+  const user: Universal.User = {
+    id: sender.senderId,
+    name: sender.senderNickname,
+    avatar: getMediaProxyUrl(sender.senderAvatarUrl, 'image', bot),
+  };
+
+  return {
+    ...user,
+    user,
+    roles: decodeRoles(sender),
+    userId: user.id,
+    username: user.name,
+    nickname: user.name,
+  };
+}
+
 function decodeYunhuEmoji(text: string): string
 {
   if (!text) return '';
@@ -144,13 +167,14 @@ export async function adaptSession(bot: YunhuBot, input: Yunhu.YunhuEvent)
           selfId: bot.selfId,
           timestamp: message.sendTime,
           member: {
-            roles: [{ id: sender.senderUserLevel, name: sender.senderUserLevel }],
+            roles: decodeRoles(sender),
           },
           user: {
             id: sender.senderId,
             name: sender.senderNickname,
             avatar: getMediaProxyUrl(sender.senderAvatarUrl, 'image', bot),
           },
+          author: decodeAuthor(sender, bot),
           message: {
             id: message.msgId,
             content: message.content.text,
@@ -200,6 +224,16 @@ export async function adaptSession(bot: YunhuBot, input: Yunhu.YunhuEvent)
           userId: sender.senderId,
           channelId: message.chatType === 'bot' ? `private:${sender.senderId}` : `group:${chat.chatId}`,
           guildId: message.chatType === 'group' ? chat.chatId : undefined,
+          user: {
+            id: sender.senderId,
+            name: sender.senderNickname,
+            avatar: getMediaProxyUrl(sender.senderAvatarUrl, 'image', bot),
+          },
+          member: {
+            roles: decodeRoles(sender),
+            avatar: getMediaProxyUrl(sender.senderAvatarUrl, 'image', bot),
+          },
+          author: decodeAuthor(sender, bot),
           message: {
             id: message.msgId,
             content: content,
@@ -222,7 +256,7 @@ export async function adaptSession(bot: YunhuBot, input: Yunhu.YunhuEvent)
         selfId: bot.selfId,
         timestamp: message.sendTime,
         member: {
-          roles: [{ id: sender.senderUserLevel, name: sender.senderUserLevel }],
+          roles: decodeRoles(sender),
           avatar: getMediaProxyUrl(sender.senderAvatarUrl, 'image', bot),
         },
         user: {
@@ -230,6 +264,7 @@ export async function adaptSession(bot: YunhuBot, input: Yunhu.YunhuEvent)
           name: sender.senderNickname,
           avatar: getMediaProxyUrl(sender.senderAvatarUrl, 'image', bot),
         },
+        author: decodeAuthor(sender, bot),
         message: {
           id: message.msgId,
           content: content,
@@ -256,6 +291,7 @@ export async function adaptSession(bot: YunhuBot, input: Yunhu.YunhuEvent)
           user: sessionPayload.user,
           name: sessionPayload.user.name,
           avatar: getMediaProxyUrl(sessionPayload.user.avatar, 'image', bot),
+          roles: sessionPayload.member.roles,
         };
       }
 
