@@ -443,10 +443,18 @@ export class Internal
    */
   async muteGuildMember(guildId: string, userId: string, duration: number): Promise<void>
   {
+    // 云湖禁言接口只支持固定档位，这里将传入时长归一化到对应的档位
+    const numericDuration = Number(duration);
+    const gagDuration = this.normalizeGagDuration(numericDuration);
+    if (gagDuration !== numericDuration)
+    {
+      this.bot.logInfo(`禁言时长 ${numericDuration} 秒已归一化为云湖支持的档位: ${gagDuration} 秒`);
+    }
+
     const payload = {
       groupId: guildId,
       userId: userId,
-      gag: duration
+      gag: gagDuration
     };
 
     const response = await this.bot.http.post(`/group/gag-member?token=${this.token}`, payload);
@@ -455,6 +463,49 @@ export class Internal
     {
       throw new Error(`禁言失败: ${response.msg}`);
     }
+  }
+
+  /**
+   * 将禁言时长转换为云湖接口支持的固定档位
+   * @param duration 原始禁言时长（秒）
+   */
+  private normalizeGagDuration(duration: number): number
+  {
+    // 0 表示解除禁言，需要原样保留
+    if (duration === 0)
+    {
+      return 0;
+    }
+
+    // 负数按永久禁言处理，云湖接口只接受 -1
+    if (duration < 0)
+    {
+      return -1;
+    }
+
+    // 小于最短档位 10 分钟时，默认提升到 10 分钟
+    if (duration <= 600)
+    {
+      return 600;
+    }
+
+    if (duration <= 3600)
+    {
+      return 3600;
+    }
+
+    if (duration <= 21600)
+    {
+      return 21600;
+    }
+
+    if (duration <= 43200)
+    {
+      return 43200;
+    }
+
+    // 超过 12 小时没有更大的正数档位，按永久禁言处理
+    return -1;
   }
 
   /**
