@@ -445,8 +445,8 @@ export class Internal
   {
     // 云湖禁言接口只支持固定档位，这里将传入时长归一化到对应的档位
     const numericDuration = Number(duration);
-    // Koishi 传入的是毫秒，云湖 gag 字段要求的是秒
-    const durationSeconds = Math.ceil(numericDuration / 1000);
+    // Koishi 传入的是毫秒，云湖 gag 字段要求的是秒；负数统一按永久禁言处理
+    const durationSeconds = numericDuration < 0 ? -1 : Math.ceil(numericDuration / 1000);
     const gagDuration = this.normalizeGagDuration(durationSeconds);
     if (gagDuration !== durationSeconds)
     {

@@ -16,9 +16,18 @@ export const decodeUser = (user: Yunhu.Sender): Universal.User => ({
   isBot: false,
 });
 
+// 云湖身份等级到 Koishi 身份名的映射
+const KOISHI_ROLE_MAP: Record<Yunhu.Sender['senderUserLevel'], string> = {
+  owner: 'owner',
+  administrator: 'admin',
+  member: 'member',
+  unknown: 'member',
+};
+
 function decodeRoles(sender: Yunhu.Sender): Universal.GuildRole[]
 {
-  return [{ id: sender.senderUserLevel, name: sender.senderUserLevel }];
+  const role = KOISHI_ROLE_MAP[sender.senderUserLevel] ?? 'member';
+  return [{ id: role, name: role }];
 }
 
 function decodeAuthor(sender: Yunhu.Sender, bot: YunhuBot): Universal.User & Universal.GuildMember
