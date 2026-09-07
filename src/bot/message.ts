@@ -106,6 +106,7 @@ interface ForwardRenderContext
   text: string;
   markdown: string;
   html: string;
+  insideAnchor: boolean;
   render: (children: Fragment) => Promise<void>;
 }
 
@@ -117,6 +118,48 @@ function escapeHtml(text: string): string
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
+}
+
+const AUTO_LINK_PATTERN = /https?:\/\/[^\s<>"'`]+/gi;
+const URL_TRAILING_PUNCTUATION = /[.,;!?、。，；：！？》】”’"')\]]+$/;
+
+function stripUrlTrailingPunctuation(rawUrl: string): string
+{
+  return rawUrl.replace(URL_TRAILING_PUNCTUATION, '');
+}
+
+// 纯文本里的 http(s) 链接转成可点击 <a>，其余内容仍做 HTML 转义
+function escapeHtmlWithAutoLink(text: string): string
+{
+  let result = '';
+  let cursor = 0;
+
+  for (const match of text.matchAll(AUTO_LINK_PATTERN))
+  {
+    const start = match.index;
+    result += escapeHtml(text.slice(cursor, start));
+
+    const rawUrl = match[0];
+    const url = stripUrlTrailingPunctuation(rawUrl);
+    if (url)
+    {
+      const escapedUrl = escapeHtml(url);
+      result += `<a href="${escapedUrl}" target="_blank" rel="noopener noreferrer">${escapedUrl}</a>`;
+    }
+
+    // 被裁掉的结尾标点保留在链接文本外
+    result += escapeHtml(rawUrl.slice(url.length));
+    cursor = start + rawUrl.length;
+  }
+
+  result += escapeHtml(text.slice(cursor));
+  return result;
+}
+
+function escapeHtmlText(text: string, insideAnchor: boolean): string
+{
+  // 显式 <a> 内不再自动包一层链接，避免嵌套 <a>
+  return insideAnchor ? escapeHtml(text) : escapeHtmlWithAutoLink(text);
 }
 
 function getForwardName(attrs: Dict): string
@@ -159,6 +202,7 @@ async function renderForwardContent(bot: YunhuBot, fragment: Fragment): Promise<
     text: '',
     markdown: '',
     html: '',
+    insideAnchor: false,
     render: async (children) =>
     {
       for (const child of h.normalize(children))
@@ -257,7 +301,7 @@ async function renderForwardElement(context: ForwardRenderContext, element: Forw
   {
     context.text += element;
     context.markdown += element;
-    context.html += escapeHtml(element);
+    context.html += escapeHtmlText(element, context.insideAnchor);
     return;
   }
 
@@ -270,7 +314,7 @@ async function renderForwardElement(context: ForwardRenderContext, element: Forw
         const content = String(attrs.content || '').replace(/<br>/g, '\n');
         context.text += content;
         context.markdown += content;
-        context.html += escapeHtml(content).replace(/\n/g, '<br>');
+        context.html += escapeHtmlText(content, context.insideAnchor).replace(/\n/g, '<br>');
         break;
       }
     case 'br':
@@ -287,7 +331,15 @@ async function renderForwardElement(context: ForwardRenderContext, element: Forw
       break;
     case 'a':
       context.html += `<a href="${escapeHtml(String(attrs.href || ''))}">`;
-      await context.render(children);
+      const previousInsideAnchor = context.insideAnchor;
+      context.insideAnchor = true;
+      try
+      {
+        await context.render(children);
+      } finally
+      {
+        context.insideAnchor = previousInsideAnchor;
+      }
       context.html += '</a>';
       break;
     case 'img':
@@ -623,7 +675,7 @@ async function _visit(context: any, element: h)
         const content = element.attrs.content.replace(/<br>/g, '\n');
         context.text += context.sendType === "text" ? content : '';
         context.markdown += context.sendType === 'markdown' ? content : '';
-        context.html += escapeHtml(content).replace(/\n/g, '<br>');
+        context.html += escapeHtmlText(content, context.insideAnchor === true).replace(/\n/g, '<br>');
         break;
 
       case 'img':
@@ -825,8 +877,16 @@ async function _visit(context: any, element: h)
         }
         context.text += context.sendType === "markdown" ? element.attrs.href + " " : '';
         context.markdown += context.sendType === 'markdown' ? `**[链接](${element.attrs.href})** ` : '';
-        context.html += `<a href="${element.attrs.href}">`;
-        await context.render(children);
+        context.html += `<a href="${escapeHtml(element.attrs.href)}">`;
+        const previousInsideAnchor = context.insideAnchor === true;
+        context.insideAnchor = true;
+        try
+        {
+          await context.render(children);
+        } finally
+        {
+          context.insideAnchor = previousInsideAnchor;
+        }
         context.html += '</a>';
         break;
 
