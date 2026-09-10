@@ -138,6 +138,20 @@ function escapeHtml(text: string): string
     .replace(/'/g, '&#39;');
 }
 
+const HTML_TEXT_STYLE = 'color:#000;';
+const HTML_LINK_STYLE = 'color:#000;text-decoration:underline;';
+
+function openHtmlLink(href: string, extraAttrs = '', style = HTML_LINK_STYLE): string
+{
+  const extra = extraAttrs ? ` ${extraAttrs}` : '';
+  return `<a href="${escapeHtml(href)}"${extra} style="${style}">`;
+}
+
+function wrapHtmlMessage(content: string): string
+{
+  return content ? `<div style="${HTML_TEXT_STYLE}">${content}</div>` : content;
+}
+
 const AUTO_LINK_PATTERN = /https?:\/\/[^\s<>"'`]+/gi;
 const URL_TRAILING_PUNCTUATION = /[.,;!?、。，；：！？》】”’"')\]]+$/;
 
@@ -162,7 +176,7 @@ function escapeHtmlWithAutoLink(text: string): string
     if (url)
     {
       const escapedUrl = escapeHtml(url);
-      result += `<a href="${escapedUrl}" target="_blank" rel="noopener noreferrer">${escapedUrl}</a>`;
+      result += `${openHtmlLink(url, 'target="_blank" rel="noopener noreferrer"')}${escapedUrl}</a>`;
     }
 
     // 被裁掉的结尾标点保留在链接文本外
@@ -211,6 +225,48 @@ function formatForwardTime(time?: string | number): string
   const timestamp = value < 1e12 ? value * 1000 : value;
   const date = new Date(timestamp);
   return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+}
+
+const FORWARD_MEDIA_LINK_STYLE = 'display:flex;flex-direction:column;align-items:flex-start;box-sizing:border-box;width:100%;margin:8px 0;padding:12px;border:1px solid #dbe4f0;border-radius:8px;background:#fff;color:#000;text-decoration:none;';
+
+function getForwardMediaText(attrs: Dict, fallback: string): string
+{
+  return String(attrs.name || attrs.filename || fallback);
+}
+
+function getForwardMediaName(attrs: Dict, fallback: string): string
+{
+  return escapeHtml(getForwardMediaText(attrs, fallback));
+}
+
+function renderForwardMediaIcon(label: string, background: string): string
+{
+  return `<span style="display:block;box-sizing:border-box;flex:none;width:42px;height:42px;line-height:42px;border-radius:12px;background:${background};color:#fff;font-size:11px;font-weight:700;letter-spacing:.5px;text-align:center;">${label}</span>`;
+}
+
+function renderForwardAudioCard(url: string, attrs: Dict): string
+{
+  const title = getForwardMediaName(attrs, '语音');
+  const icon = renderForwardMediaIcon('MP3', '#22c55e');
+
+  return `${openHtmlLink(url, 'target="_blank" rel="noopener noreferrer"', FORWARD_MEDIA_LINK_STYLE)}${icon}<span style="box-sizing:border-box;width:100%;margin-top:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#000;font-size:12px;text-align:left;text-decoration:underline;">${title}</span><span style="margin-top:2px;color:#64748b;font-size:12px;text-align:left;">点击播放</span></a>`;
+}
+
+function renderForwardVideoCard(url: string, attrs: Dict): string
+{
+  const title = getForwardMediaName(attrs, '视频');
+  const icon = renderForwardMediaIcon('MP4', '#111827');
+  return `${openHtmlLink(url, 'target="_blank" rel="noopener noreferrer"', FORWARD_MEDIA_LINK_STYLE)}${icon}<span style="box-sizing:border-box;width:100%;margin-top:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#000;font-size:12px;font-weight:600;text-align:left;text-decoration:underline;">${title}</span><span style="margin-top:2px;color:#64748b;font-size:12px;text-align:left;">点击播放视频</span></a>`;
+}
+
+function renderForwardFileCard(url: string, attrs: Dict, resolvedFileName = ''): string
+{
+  const rawName = getForwardMediaText(attrs, '文件');
+  const title = escapeHtml(rawName);
+  const extension = /\.([a-z0-9]{1,8})$/i.exec(resolvedFileName || rawName)?.[1]?.toUpperCase() || 'FILE';
+  const icon = renderForwardMediaIcon(extension, '#f59e0b');
+
+  return `${openHtmlLink(url, 'target="_blank" rel="noopener noreferrer"', FORWARD_MEDIA_LINK_STYLE)}${icon}<span style="box-sizing:border-box;width:100%;margin-top:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#000;font-size:12px;font-weight:600;text-align:left;text-decoration:underline;">${title}</span><span style="margin-top:2px;color:#64748b;font-size:12px;text-align:left;">点击查看文件</span></a>`;
 }
 
 async function renderForwardContent(bot: YunhuBot, fragment: Fragment): Promise<string>
@@ -348,7 +404,7 @@ async function renderForwardElement(context: ForwardRenderContext, element: Forw
       context.html += '</p>';
       break;
     case 'a':
-      context.html += `<a href="${escapeHtml(String(attrs.href || ''))}">`;
+      context.html += openHtmlLink(String(attrs.href || ''));
       const previousInsideAnchor = context.insideAnchor;
       context.insideAnchor = true;
       try
@@ -368,42 +424,40 @@ async function renderForwardElement(context: ForwardRenderContext, element: Forw
         {
           const uploadImage = await context.bot.internal.uploadImageKey(src);
           const imageStyle = getMixedMediaImageStyle(context.bot);
+          const imageName = getForwardMediaText(attrs, '');
+          const caption = imageName
+            ? `<div style="display:block;margin-top:4px;color:#475569;font-size:12px;text-align:left;text-decoration:none;">${escapeHtml(imageName)}</div>`
+            : '';
           if (isHtmlWebProxyMixedMedia(context.bot))
           {
             const previewUrl = context.bot.buildExternalMediaUrl(uploadImage.url, 'image');
-            context.html += wrapBlockHtml(`<a href="${escapeHtml(previewUrl)}"><img src="${escapeHtml(uploadImage.url)}" alt="picture" style="${imageStyle}"></a>`);
+            context.html += wrapBlockHtml(`${openHtmlLink(previewUrl)}<img src="${escapeHtml(uploadImage.url)}" alt="picture" style="${imageStyle}">${caption}</a>`);
           } else
           {
-            context.html += wrapBlockHtml(`<img src="${escapeHtml(uploadImage.url)}" alt="picture" style="${imageStyle}">`);
+            context.html += wrapBlockHtml(`<img src="${escapeHtml(uploadImage.url)}" alt="picture" style="${imageStyle}">${caption}`);
           }
         }
         break;
       }
     case 'video':
       {
-        const src = String(attrs.src || '');
+        const src = getFileSource(attrs);
         if (src)
         {
           const uploadVideo = await context.bot.internal.uploadVideoKey(src);
           const previewUrl = context.bot.buildExternalMediaUrl(uploadVideo.url, 'video');
-          context.html += `<a href="${escapeHtml(previewUrl)}" target="_blank" rel="noopener noreferrer">[视频]</a>`;
+          context.html += renderForwardVideoCard(previewUrl, attrs);
         }
         break;
       }
     case 'audio':
       {
-        const src = String(attrs.src || '');
+        const src = getFileSource(attrs);
         if (src)
         {
-          if (isPublicHttpMediaUrl(src))
-          {
-            const uploadAudio = await context.bot.internal.uploadAudioKey(src);
-            context.html += `<a href="${escapeHtml(uploadAudio.url)}" target="_blank" rel="noopener noreferrer">[音频]</a>`;
-          } else
-          {
-            const uploadAudio = await context.bot.internal.uploadAudioKey(src);
-            context.html += `<a href="${escapeHtml(uploadAudio.url)}" target="_blank" rel="noopener noreferrer">[音频]</a>`;
-          }
+          const uploadAudio = await context.bot.internal.uploadAudioKey(src);
+          const previewUrl = context.bot.buildExternalMediaUrl(uploadAudio.url, 'audio');
+          context.html += renderForwardAudioCard(previewUrl, attrs);
         }
         break;
       }
@@ -412,9 +466,9 @@ async function renderForwardElement(context: ForwardRenderContext, element: Forw
         const src = getFileSource(attrs);
         if (src)
         {
-          const uploadFile = await context.bot.internal.uploadFileKey(src);
-          const label = escapeHtml(getFileName(attrs) || '[文件]');
-          context.html += `<a href="${escapeHtml(uploadFile.url)}" target="_blank" rel="noopener noreferrer">${label}</a>`;
+          const uploadFile = await context.bot.internal.uploadFileKey(src, getFileName(attrs));
+          const previewUrl = context.bot.buildExternalMediaUrl(uploadFile.url, 'file');
+          context.html += renderForwardFileCard(previewUrl, attrs, uploadFile.fileName);
         }
         break;
       }
@@ -477,7 +531,7 @@ export async function fragmentToPayload(bot: YunhuBot, fragment: Fragment): Prom
     finalContent.text = markdown;
   } else if (finalContentType === 'html')
   {
-    finalContent.text = html;
+    finalContent.text = wrapHtmlMessage(html);
   }
 
   if (imageKey) finalContent.imageKey = imageKey;
@@ -643,7 +697,7 @@ export class YunhuMessageEncoder extends MessageEncoder<Context, YunhuBot>
       this.payload.content.text = this.markdown;
     } else if (this.sendType === 'html')
     {
-      this.payload.content.text = this.html;
+      this.payload.content.text = wrapHtmlMessage(this.html);
     }
 
     if (this.atPayload.length > 0)
@@ -724,7 +778,7 @@ async function _visit(context: any, element: h)
           {
             const previewUrl = context.bot.buildExternalMediaUrl(uploadImage.url, 'image');
             context.markdown += context.sendType === 'markdown' ? `\n![picture](${previewUrl})\n` : '';
-            context.html += wrapBlockHtml(`<a href="${previewUrl}"><img src="${uploadImage.url}" alt="picture" style="${imageStyle}"></a>`);
+            context.html += wrapBlockHtml(`${openHtmlLink(previewUrl)}<img src="${uploadImage.url}" alt="picture" style="${imageStyle}"></a>`);
           } else if (useHtmlMixedMedia)
           {
             context.markdown += context.sendType === 'markdown' ? `\n![picture](${uploadImage.url})\n` : '';
@@ -790,7 +844,7 @@ async function _visit(context: any, element: h)
 
       case 'audio':
         {
-          const src = String(element.attrs.src || '');
+          const src = String(element.attrs.src || element.attrs.url || '');
           if (!src)
           {
             break;
@@ -804,7 +858,7 @@ async function _visit(context: any, element: h)
             try
             {
               const uploadAudio = await context.bot.internal.uploadAudioKey(src);
-              const description = String(element.attrs.title || '');
+              const description = String(element.attrs.name || '');
               context.a2uiMessages = buildAudioA2uiJsonl(uploadAudio.url, description);
               await context.flush();
             } catch (error)
@@ -904,7 +958,7 @@ async function _visit(context: any, element: h)
         }
         context.text += context.sendType === "markdown" ? element.attrs.href + " " : '';
         context.markdown += context.sendType === 'markdown' ? `**[链接](${element.attrs.href})** ` : '';
-        context.html += `<a href="${escapeHtml(element.attrs.href)}">`;
+        context.html += openHtmlLink(String(element.attrs.href || ''));
         const previousInsideAnchor = context.insideAnchor === true;
         context.insideAnchor = true;
         try
