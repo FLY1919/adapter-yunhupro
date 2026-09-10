@@ -1,8 +1,21 @@
 import { createHash } from 'node:crypto';
+import { extname } from 'node:path';
+
+import { extension as getExtensionByMime, lookup } from 'mime-types';
 
 import { BaseUploader } from './BaseUploader';
 import { YunhuBot } from '../bot/bot';
 import { SizeLimitError } from '../utils/types';
+
+function hasKnownExtension(fileName: string): boolean
+{
+  const lastDot = fileName.lastIndexOf('.');
+  if (lastDot <= 0 || lastDot === fileName.length - 1)
+  {
+    return false;
+  }
+  return lookup(fileName.slice(lastDot + 1)) !== false;
+}
 
 // 文件上传器
 export class FileUploader extends BaseUploader
@@ -12,17 +25,17 @@ export class FileUploader extends BaseUploader
     super(token, apiendpoint, 'file', bot);
   }
 
-  async upload(url: string): Promise<string>
+  async upload(url: string, fileName?: string): Promise<string>
   {
-    return this.processUpload(url);
+    return this.processUpload(url, false, fileName);
   }
 
-  async uploadGetKey(url: string): Promise<{ url: string; key: string; }>
+  async uploadGetKey(url: string, fileName?: string): Promise<{ url: string; key: string; fileName: string; }>
   {
-    return this.processUpload(url, true);
+    return this.processUpload(url, true, fileName);
   }
 
-  private async processUpload(url: string, returnKey: boolean = false): Promise<any>
+  private async processUpload(url: string, returnKey: boolean = false, fileName?: string): Promise<any>
   {
     // 从URL获取文件
     if (url.length < 500)
@@ -41,8 +54,15 @@ export class FileUploader extends BaseUploader
     // 创建表单并上传
     const form = new FormData();
     const blob = new Blob([data], { type: type || 'application/octet-stream' });
-    const extension = (type && type.split('/')[1]) || 'dat';
-    const finalFilename = filename && filename.includes('.') ? filename : `${filename || 'file'}.${extension}`;
+    const sourceExtension = extname(filename || '').slice(1);
+    const extension = getExtensionByMime(type || '')
+      || (sourceExtension && lookup(sourceExtension) ? sourceExtension : '')
+      || 'dat';
+    const requestedFilename = fileName?.trim();
+    const baseFilename = requestedFilename || filename?.trim() || 'file';
+    const finalFilename = hasKnownExtension(baseFilename)
+      ? baseFilename
+      : `${baseFilename}.${extension}`;
     form.append('file', blob, finalFilename);
     const fileKey = await this.sendFormData(form);
 
@@ -58,7 +78,8 @@ export class FileUploader extends BaseUploader
     {
       return {
         url: fileUrl,
-        key: fileKey
+        key: fileKey,
+        fileName: finalFilename,
       };
     }
     return fileUrl;

@@ -121,11 +121,11 @@ export async function clearMsg(bot: YunhuBot, message: Yunhu.Message, sender: Yu
   }
   if (message.content.fileUrl)
   {
-    textContent += h('file', { src: getMediaProxyUrl(message.content.fileUrl, 'file', bot), title: message.content.fileName }).toString();
+    textContent += h('file', { src: getMediaProxyUrl(message.content.fileUrl, 'file', bot), name: message.content.fileName }).toString();
   } else if (message.content.fileKey)
   {
     const fileBase = bot.config.resourceFileEndpoint || bot.config.resourceEndpoint;
-    textContent += h('file', { src: getMediaProxyUrl(fileBase + message.content.fileKey, 'file', bot), title: message.content.fileName }).toString();
+    textContent += h('file', { src: getMediaProxyUrl(fileBase + message.content.fileKey, 'file', bot), name: message.content.fileName }).toString();
   }
 
   if (message.content.videoUrl)

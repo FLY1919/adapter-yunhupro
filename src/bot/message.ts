@@ -23,6 +23,24 @@ function wrapBlockHtml(content: string): string
   return `<div>${content}</div>`;
 }
 
+function getFileSource(attrs: Dict): string
+{
+  return String(attrs.src || attrs.url || '').trim();
+}
+
+function getFileName(attrs: Dict): string | undefined
+{
+  for (const key of ['name', 'filename', 'title'])
+  {
+    const value = attrs[key];
+    if (typeof value === 'string' && value.trim())
+    {
+      return value.trim();
+    }
+  }
+  return undefined;
+}
+
 function isPublicHttpMediaUrl(src: string): boolean
 {
   try
@@ -391,11 +409,11 @@ async function renderForwardElement(context: ForwardRenderContext, element: Forw
       }
     case 'file':
       {
-        const src = String(attrs.src || '');
+        const src = getFileSource(attrs);
         if (src)
         {
           const uploadFile = await context.bot.internal.uploadFileKey(src);
-          const label = escapeHtml(String(attrs.title || '[文件]'));
+          const label = escapeHtml(getFileName(attrs) || '[文件]');
           context.html += `<a href="${escapeHtml(uploadFile.url)}" target="_blank" rel="noopener noreferrer">${label}</a>`;
         }
         break;
@@ -425,6 +443,7 @@ export async function fragmentToPayload(bot: YunhuBot, fragment: Fragment): Prom
     buttons: [],
     imageKey: undefined,
     fileKey: undefined,
+    fileName: undefined,
     videoKey: undefined,
     // editMessage不支持分段发送，所以flush是空操作
     flush: async () => { },
@@ -440,7 +459,7 @@ export async function fragmentToPayload(bot: YunhuBot, fragment: Fragment): Prom
 
   await context.render(elements);
 
-  const { sendType, text, markdown, html, atPayload, imageKey, fileKey, videoKey, buttons } = context;
+  const { sendType, text, markdown, html, atPayload, imageKey, fileKey, fileName, videoKey, buttons } = context;
 
   if (!imageKey && !fileKey && !videoKey && !text.trim() && !markdown.trim() && !html.trim() && !buttons.length)
   {
@@ -462,7 +481,11 @@ export async function fragmentToPayload(bot: YunhuBot, fragment: Fragment): Prom
   }
 
   if (imageKey) finalContent.imageKey = imageKey;
-  if (fileKey) finalContent.fileKey = fileKey;
+  if (fileKey)
+  {
+    finalContent.fileKey = fileKey;
+    if (fileName) finalContent.fileName = fileName;
+  }
   if (videoKey) finalContent.videoKey = videoKey;
   if (atPayload.length > 0) finalContent.at = atPayload;
   if (buttons.length > 0) finalContent.buttons = [buttons];
@@ -487,6 +510,7 @@ export class YunhuMessageEncoder extends MessageEncoder<Context, YunhuBot>
   private atPayload: string[] = [];
   private buttons: Button[] = [];
   private a2uiMessages = '';
+  private fileName: string | undefined = undefined;
   private messageId: string;
 
   getMessageId(): string
@@ -508,6 +532,7 @@ export class YunhuMessageEncoder extends MessageEncoder<Context, YunhuBot>
       content: {
         imageKey: undefined,
         fileKey: undefined,
+        fileName: undefined,
         videoKey: undefined,
         text: ''
       },
@@ -563,7 +588,9 @@ export class YunhuMessageEncoder extends MessageEncoder<Context, YunhuBot>
       this.sendType = undefined;
       this.payload.content.imageKey = undefined;
       this.payload.content.fileKey = undefined;
+      this.payload.content.fileName = undefined;
       this.payload.content.videoKey = undefined;
+      this.fileName = undefined;
       this.payload.contentType = 'text';
       this.html = "";
       this.text = "";
@@ -890,19 +917,29 @@ async function _visit(context: any, element: h)
         context.html += '</a>';
         break;
 
-      case 'file':
+      case 'file': {
+        const src = getFileSource(element.attrs);
+        if (!src)
+        {
+          break;
+        }
+
         await context.flush();
         context.sendType = 'file';
         try
         {
-          const uploadFile = await context.bot.internal.uploadFileKey(element.attrs.src);
+          const requestedFileName = getFileName(element.attrs);
+          const uploadFile = await context.bot.internal.uploadFileKey(src, requestedFileName);
           const filekey = uploadFile.key;
+          const fileName = uploadFile.fileName || requestedFileName;
           if (context.payload?.content)
           {
             context.payload.content.fileKey = filekey;
+            if (fileName) context.payload.content.fileName = fileName;
           } else
           {
             context.fileKey = filekey;
+            context.fileName = fileName;
           }
         } catch (error)
         {
@@ -914,6 +951,7 @@ async function _visit(context: any, element: h)
         }
         await context.flush();
         break;
+      }
 
       case 'button': {
         let buttonLabel = '';

@@ -133,9 +133,9 @@ export class Internal
   }
 
   // 获取文件的URL和key
-  async uploadFileKey(file: string | Buffer | any): Promise<{ url: string; key: string; }>
+  async uploadFileKey(file: string | Buffer | any, fileName?: string): Promise<{ url: string; key: string; fileName: string; }>
   {
-    return this.fileUploader.uploadGetKey(file);
+    return this.fileUploader.uploadGetKey(file, fileName);
   }
 
   // 上传图片，仅返回URL
@@ -157,9 +157,9 @@ export class Internal
   }
 
   // 上传文件，仅返回URL
-  async uploadFile(fileData: string | Buffer | any): Promise<string>
+  async uploadFile(fileData: string | Buffer | any, fileName?: string): Promise<string>
   {
-    return this.fileUploader.upload(fileData);
+    return this.fileUploader.upload(fileData, fileName);
   }
 
   async deleteMessage(chatId: string, msgId: string | string[])

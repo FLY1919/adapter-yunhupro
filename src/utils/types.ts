@@ -119,6 +119,7 @@ export interface YunhuMessage
   content: {
     text?: string;      // for text/markdown/html
     imageKey?: string;  // for image
+    fileName?: string;  // for file
     fileKey?: string;   // for file
     videoKey?: string;   // for video
     // 其他类型的 content 字段
