@@ -1,7 +1,7 @@
 import { Bot, Context, Fragment, Logger, Universal } from 'koishi';
 import { BidiList, Direction, Order, SendOptions } from '@satorijs/protocol';
 import { Buffer } from 'node:buffer';
-import { Config } from '../config';
+import { Config, DEFAULT_EXTERNAL_MEDIA_PROXY_BASE_URL } from '../config';
 import { YunhuMessageEncoder } from './message';
 import { fragmentToPayload } from './message';
 import { Internal } from './internal';
@@ -77,12 +77,14 @@ export class YunhuBot extends Bot<Context, Config>
     return { data: [] };
   }
 
-  buildExternalMediaUrl(mediaUrl: string, type: 'image' | 'video' | 'audio' | 'file'): string
+  buildExternalMediaUrl(mediaUrl: string): string
   {
-    const baseUrl = this.config.externalMediaProxyBaseUrl || 'https://fly1919.github.io/adapter-yunhupro/';
-    const url = new URL('proxy.html', baseUrl);
+    // 测试云湖客户端直接渲染原始 URL 时，取消下一行注释以跳过反代。
+    // return mediaUrl;
+
+    const baseUrl = this.config.externalMediaProxyBaseUrl?.trim() || DEFAULT_EXTERNAL_MEDIA_PROXY_BASE_URL;
+    const url = new URL(baseUrl);
     url.searchParams.set('url', mediaUrl);
-    url.searchParams.set('type', type);
     return url.toString();
   }
 

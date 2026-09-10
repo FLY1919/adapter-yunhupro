@@ -111,6 +111,21 @@ function buildAudioA2uiJsonl(url: string, description: string): string
   return messages.map(item => `\`\`\`json\n${JSON.stringify(item)}\n\`\`\``).join('\n\n');
 }
 
+async function resolveAudioA2uiUrl(bot: YunhuBot, src: string): Promise<string>
+{
+  if (isPublicHttpMediaUrl(src))
+  {
+    return src;
+  }
+
+  const file = await bot.http.file(src, { timeout: bot.config.uploadTimeout * 1000 });
+  const type = file.type || 'application/octet-stream';
+  const base64 = Buffer.from(file.data).toString('base64');
+  const dataUrl = `data:${type};base64,${base64}`;
+  const uploaded = await bot.internal.uploadFileKey(dataUrl, file.filename);
+  return bot.buildExternalMediaUrl(uploaded.url);
+}
+
 function setMixedTextMode(context: { sendType?: 'text' | 'image' | 'video' | 'file' | 'markdown' | 'html' | 'html-webproxy' | 'a2ui'; }, bot: YunhuBot)
 {
   context.sendType = isHtmlMixedMedia(bot) ? 'html' : 'markdown';
@@ -430,7 +445,7 @@ async function renderForwardElement(context: ForwardRenderContext, element: Forw
             : '';
           if (isHtmlWebProxyMixedMedia(context.bot))
           {
-            const previewUrl = context.bot.buildExternalMediaUrl(uploadImage.url, 'image');
+            const previewUrl = context.bot.buildExternalMediaUrl(uploadImage.url);
             context.html += wrapBlockHtml(`${openHtmlLink(previewUrl)}<img src="${escapeHtml(uploadImage.url)}" alt="picture" style="${imageStyle}">${caption}</a>`);
           } else
           {
@@ -445,7 +460,7 @@ async function renderForwardElement(context: ForwardRenderContext, element: Forw
         if (src)
         {
           const uploadVideo = await context.bot.internal.uploadVideoKey(src);
-          const previewUrl = context.bot.buildExternalMediaUrl(uploadVideo.url, 'video');
+          const previewUrl = context.bot.buildExternalMediaUrl(uploadVideo.url);
           context.html += renderForwardVideoCard(previewUrl, attrs);
         }
         break;
@@ -456,7 +471,7 @@ async function renderForwardElement(context: ForwardRenderContext, element: Forw
         if (src)
         {
           const uploadAudio = await context.bot.internal.uploadAudioKey(src);
-          const previewUrl = context.bot.buildExternalMediaUrl(uploadAudio.url, 'audio');
+          const previewUrl = context.bot.buildExternalMediaUrl(uploadAudio.url);
           context.html += renderForwardAudioCard(previewUrl, attrs);
         }
         break;
@@ -467,7 +482,7 @@ async function renderForwardElement(context: ForwardRenderContext, element: Forw
         if (src)
         {
           const uploadFile = await context.bot.internal.uploadFileKey(src, getFileName(attrs));
-          const previewUrl = context.bot.buildExternalMediaUrl(uploadFile.url, 'file');
+          const previewUrl = context.bot.buildExternalMediaUrl(uploadFile.url);
           context.html += renderForwardFileCard(previewUrl, attrs, uploadFile.fileName);
         }
         break;
@@ -776,7 +791,7 @@ async function _visit(context: any, element: h)
           const imageStyle = getMixedMediaImageStyle(context.bot);
           if (useHtmlWebProxyMixedMedia)
           {
-            const previewUrl = context.bot.buildExternalMediaUrl(uploadImage.url, 'image');
+            const previewUrl = context.bot.buildExternalMediaUrl(uploadImage.url);
             context.markdown += context.sendType === 'markdown' ? `\n![picture](${previewUrl})\n` : '';
             context.html += wrapBlockHtml(`${openHtmlLink(previewUrl)}<img src="${uploadImage.url}" alt="picture" style="${imageStyle}"></a>`);
           } else if (useHtmlMixedMedia)
@@ -852,47 +867,21 @@ async function _visit(context: any, element: h)
 
           await context.flush();
 
-          if (isPublicHttpMediaUrl(src))
+          context.sendType = 'a2ui';
+          try
           {
-            context.sendType = 'a2ui';
-            try
-            {
-              const uploadAudio = await context.bot.internal.uploadAudioKey(src);
-              const description = String(element.attrs.name || '');
-              context.a2uiMessages = buildAudioA2uiJsonl(uploadAudio.url, description);
-              await context.flush();
-            } catch (error)
-            {
-              const isSizeLimitError = error instanceof SizeLimitError;
-              const errorMsg = isSizeLimitError ? '[音频大小超限]' : '[音频上传失败]';
-              context.bot.loggerError(`${errorMsg}: ${error}`);
-              context.sendType = 'text';
-              context.text += errorMsg;
-              await context.flush();
-            }
-          } else
+            const audioUrl = await resolveAudioA2uiUrl(context.bot, src);
+            const description = String(element.attrs.name || '');
+            context.a2uiMessages = buildAudioA2uiJsonl(audioUrl, description);
+            await context.flush();
+          } catch (error)
           {
-            context.sendType = 'video';
-            try
-            {
-              const uploadAudio = await context.bot.internal.uploadAudioKey(src);
-              if (context.payload?.content)
-              {
-                context.payload.content.videoKey = uploadAudio.key;
-              } else
-              {
-                context.videoKey = uploadAudio.key;
-              }
-              await context.flush();
-            } catch (error)
-            {
-              const isSizeLimitError = error instanceof SizeLimitError;
-              const errorMsg = isSizeLimitError ? '[音频大小超限]' : '[音频上传失败]';
-              context.bot.loggerError(`${errorMsg}: ${error}`);
-              context.sendType = 'text';
-              context.text += errorMsg;
-              await context.flush();
-            }
+            const isSizeLimitError = error instanceof SizeLimitError;
+            const errorMsg = isSizeLimitError ? '[音频大小超限]' : '[音频上传失败]';
+            context.bot.loggerError(`${errorMsg}: ${error}`);
+            context.sendType = 'text';
+            context.text += errorMsg;
+            await context.flush();
           }
         }
         break;
