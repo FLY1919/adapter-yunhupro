@@ -175,6 +175,11 @@ function assignSessionChannel(
   if (isDirect)
   {
     delete session.event.guild;
+    delete session.event.member;
+    if (session.event.author)
+    {
+      delete (session.event.author as Partial<Universal.GuildMember>).roles;
+    }
   } else
   {
     session.event.guild = { id: chatId };
