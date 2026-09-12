@@ -160,7 +160,20 @@ export class YunhuBot extends Bot<Context, Config>
 
   async sendMessage(channelId: string, content: Fragment, guildId?: string, options?: SendOptions): Promise<string[]>
   {
-    const encoder = new YunhuMessageEncoder(this, channelId, guildId, options);
+    const session = options?.session;
+    const resolvedChannelId = channelId
+      || session?.channelId
+      || session?.event?.channel?.id
+      || (session?.guildId ? `group:${session.guildId}` : undefined)
+      || (session?.userId ? `private:${session.userId}` : undefined);
+
+    if (!resolvedChannelId)
+    {
+      this.loggerError('发送消息失败：无法确定频道 ID', session?.event);
+      return [];
+    }
+
+    const encoder = new YunhuMessageEncoder(this, resolvedChannelId, guildId, options);
     await encoder.send(content);
     const messageId = encoder.getMessageId();
     if (messageId)

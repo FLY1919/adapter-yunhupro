@@ -157,6 +157,29 @@ export async function clearMsg(bot: YunhuBot, message: Yunhu.Message, sender: Yu
   return textContent;
 }
 
+function assignSessionChannel(
+  session: Session,
+  chatId: string,
+  chatType: 'group' | 'bot',
+  userId: string,
+)
+{
+  const isDirect = chatType === 'bot';
+  const channelId = isDirect ? `private:${userId}` : `group:${chatId}`;
+  session.userId = userId;
+  session.channelId = channelId;
+  session.isDirect = isDirect;
+  session.guildId = isDirect ? undefined : chatId;
+  session.event.channel = { id: channelId, type: isDirect ? 1 : 0 };
+
+  if (isDirect)
+  {
+    delete session.event.guild;
+  } else
+  {
+    session.event.guild = { id: chatId };
+  }
+}
 
 export async function adaptSession(bot: YunhuBot, input: Yunhu.YunhuEvent)
 {
@@ -190,6 +213,7 @@ export async function adaptSession(bot: YunhuBot, input: Yunhu.YunhuEvent)
             elements: h.parse(message.content.text),
           },
         });
+        assignSessionChannel(session, chat.chatId, message.chatType, sender.senderId);
         bot.logInfo('触发 guild-role-updated 事件：', session);
         bot.dispatch(session);
         return;
@@ -254,6 +278,7 @@ export async function adaptSession(bot: YunhuBot, input: Yunhu.YunhuEvent)
           },
         };
         const interactionSession = bot.session(interactionSessionPayload);
+        assignSessionChannel(interactionSession, chat.chatId, message.chatType, sender.senderId);
         bot.logInfo('触发 interaction/command 事件：', interactionSession);
         bot.dispatch(interactionSession);
       }
@@ -283,19 +308,10 @@ export async function adaptSession(bot: YunhuBot, input: Yunhu.YunhuEvent)
 
       const session: Session = bot.session(sessionPayload);
       session.content = content;
+      assignSessionChannel(session, chat.chatId, message.chatType, sender.senderId);
 
-      if (message.chatType === 'bot')
+      if (message.chatType === 'group')
       {
-        session.isDirect = true;
-        session.channelId = `private:${sender.senderId}`;
-      } else
-      {
-        session.isDirect = false;
-        session.guildId = message.chatId;
-        session.channelId = `group:${chat.chatId}`;
-        session.event.guild = {
-          id: chat.chatId
-        };
         session.event.member = {
           user: sessionPayload.user,
           name: sessionPayload.user.name,
@@ -373,7 +389,7 @@ export async function adaptSession(bot: YunhuBot, input: Yunhu.YunhuEvent)
         case 'bot.followed': {
           session.type = 'friend-added';
           const event = input.event as Yunhu.BotStatusEvent;
-          session.userId = event.userId;
+          assignSessionChannel(session, event.chatId, event.chatType, event.userId);
           session.event.user.name = event.nickname;
           break;
         }
@@ -381,7 +397,7 @@ export async function adaptSession(bot: YunhuBot, input: Yunhu.YunhuEvent)
         case 'bot.unfollowed': {
           session.type = 'friend-deleted';
           const event = input.event as Yunhu.BotStatusEvent;
-          session.userId = event.userId;
+          assignSessionChannel(session, event.chatId, event.chatType, event.userId);
           session.event.user.name = event.nickname;
           session.event.user.avatar = event.avatarUrl;
           break;
@@ -390,10 +406,9 @@ export async function adaptSession(bot: YunhuBot, input: Yunhu.YunhuEvent)
         case 'group.join': {
           const event = input.event as Yunhu.GroupMemberJoinedEvent;
           session.type = 'guild-member-added';
-          session.userId = event.userId;
+          assignSessionChannel(session, event.chatId, event.chatType, event.userId);
           session.event.user.name = event.nickname;
           session.event.user.avatar = event.avatarUrl;
-          session.guildId = event.chatId;
           session.operatorId = event.userId; // 载荷中没有操作者，假定是自己加入
           break;
         }
@@ -401,10 +416,9 @@ export async function adaptSession(bot: YunhuBot, input: Yunhu.YunhuEvent)
         case 'group.leave': {
           const event = input.event as Yunhu.GroupMemberLeavedEvent;
           session.type = 'guild-member-removed';
-          session.userId = event.userId;
+          assignSessionChannel(session, event.chatId, event.chatType, event.userId);
           session.event.user.name = event.nickname;
           session.event.user.avatar = event.avatarUrl;
-          session.guildId = event.chatId;
           session.operatorId = event.userId; // 载荷中没有操作者，假定是自己退出
           session.subtype = 'leave';
           break;
@@ -413,9 +427,7 @@ export async function adaptSession(bot: YunhuBot, input: Yunhu.YunhuEvent)
         case 'bot.shortcut.menu': {
           session.type = 'interaction/button';
           const event = input.event as Yunhu.BotShortcutMenuEvent;
-          session.userId = event.senderId;
-          session.channelId = event.chatType === 'bot' ? `private:${event.senderId}` : `group:${event.chatId}`;
-          session.guildId = event.chatType === 'group' ? event.chatId : undefined;
+          assignSessionChannel(session, event.chatId, event.chatType, event.senderId);
           session.event.button = { id: event.menuId };
           break;
         }
@@ -423,10 +435,8 @@ export async function adaptSession(bot: YunhuBot, input: Yunhu.YunhuEvent)
         case 'button.report.inline': {
           session.type = 'interaction/button';
           const event = input.event as Yunhu.ButtonReportInlineEvent;
-          session.userId = event.senderId;
+          assignSessionChannel(session, event.chatId, event.chatType, event.senderId);
           session.messageId = event.msgId;
-          session.channelId = event.chatType === 'bot' ? `private:${event.senderId}` : `group:${event.chatId}`;
-          session.guildId = event.chatType === 'group' ? event.chatId : undefined;
           session.event.button = { id: event.buttonId };
           break;
         }

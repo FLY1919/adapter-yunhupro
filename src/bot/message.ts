@@ -153,8 +153,8 @@ function escapeHtml(text: string): string
     .replace(/'/g, '&#39;');
 }
 
-const HTML_TEXT_STYLE = 'color:#000;';
-const HTML_LINK_STYLE = 'color:#000;text-decoration:underline;';
+const HTML_TEXT_STYLE = 'color:CanvasText;color-scheme:light dark;';
+const HTML_LINK_STYLE = 'color:LinkText;text-decoration:underline;';
 
 function openHtmlLink(href: string, extraAttrs = '', style = HTML_LINK_STYLE): string
 {
@@ -242,7 +242,7 @@ function formatForwardTime(time?: string | number): string
   return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
 }
 
-const FORWARD_MEDIA_LINK_STYLE = 'display:flex;flex-direction:column;align-items:flex-start;box-sizing:border-box;width:100%;margin:8px 0;padding:12px;border:1px solid #dbe4f0;border-radius:8px;background:#fff;color:#000;text-decoration:none;';
+const FORWARD_MEDIA_LINK_STYLE = 'display:flex;flex-direction:column;align-items:flex-start;box-sizing:border-box;width:100%;margin:8px 0;padding:12px;border:1px solid GrayText;border-radius:8px;background:Canvas;color:CanvasText;text-decoration:none;';
 
 function getForwardMediaText(attrs: Dict, fallback: string): string
 {
@@ -264,14 +264,14 @@ function renderForwardAudioCard(url: string, attrs: Dict): string
   const title = getForwardMediaName(attrs, '语音');
   const icon = renderForwardMediaIcon('MP3', '#22c55e');
 
-  return `${openHtmlLink(url, 'target="_blank" rel="noopener noreferrer"', FORWARD_MEDIA_LINK_STYLE)}${icon}<span style="box-sizing:border-box;width:100%;margin-top:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#000;font-size:12px;text-align:left;text-decoration:underline;">${title}</span><span style="margin-top:2px;color:#64748b;font-size:12px;text-align:left;">点击播放</span></a>`;
+  return `${openHtmlLink(url, 'target="_blank" rel="noopener noreferrer"', FORWARD_MEDIA_LINK_STYLE)}${icon}<span style="box-sizing:border-box;width:100%;margin-top:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:CanvasText;font-size:12px;text-align:left;text-decoration:underline;">${title}</span><span style="margin-top:2px;color:GrayText;font-size:12px;text-align:left;">点击播放</span></a>`;
 }
 
 function renderForwardVideoCard(url: string, attrs: Dict): string
 {
   const title = getForwardMediaName(attrs, '视频');
   const icon = renderForwardMediaIcon('MP4', '#111827');
-  return `${openHtmlLink(url, 'target="_blank" rel="noopener noreferrer"', FORWARD_MEDIA_LINK_STYLE)}${icon}<span style="box-sizing:border-box;width:100%;margin-top:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#000;font-size:12px;font-weight:600;text-align:left;text-decoration:underline;">${title}</span><span style="margin-top:2px;color:#64748b;font-size:12px;text-align:left;">点击播放视频</span></a>`;
+  return `${openHtmlLink(url, 'target="_blank" rel="noopener noreferrer"', FORWARD_MEDIA_LINK_STYLE)}${icon}<span style="box-sizing:border-box;width:100%;margin-top:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:CanvasText;font-size:12px;font-weight:600;text-align:left;text-decoration:underline;">${title}</span><span style="margin-top:2px;color:GrayText;font-size:12px;text-align:left;">点击播放视频</span></a>`;
 }
 
 function renderForwardFileCard(url: string, attrs: Dict, resolvedFileName = ''): string
@@ -281,7 +281,7 @@ function renderForwardFileCard(url: string, attrs: Dict, resolvedFileName = ''):
   const extension = /\.([a-z0-9]{1,8})$/i.exec(resolvedFileName || rawName)?.[1]?.toUpperCase() || 'FILE';
   const icon = renderForwardMediaIcon(extension, '#f59e0b');
 
-  return `${openHtmlLink(url, 'target="_blank" rel="noopener noreferrer"', FORWARD_MEDIA_LINK_STYLE)}${icon}<span style="box-sizing:border-box;width:100%;margin-top:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#000;font-size:12px;font-weight:600;text-align:left;text-decoration:underline;">${title}</span><span style="margin-top:2px;color:#64748b;font-size:12px;text-align:left;">点击查看文件</span></a>`;
+  return `${openHtmlLink(url, 'target="_blank" rel="noopener noreferrer"', FORWARD_MEDIA_LINK_STYLE)}${icon}<span style="box-sizing:border-box;width:100%;margin-top:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:CanvasText;font-size:12px;font-weight:600;text-align:left;text-decoration:underline;">${title}</span><span style="margin-top:2px;color:GrayText;font-size:12px;text-align:left;">点击查看文件</span></a>`;
 }
 
 async function renderForwardContent(bot: YunhuBot, fragment: Fragment): Promise<string>
@@ -335,9 +335,8 @@ async function renderForwardMessage(bot: YunhuBot, attrs: Dict, children: Fragme
   if (!body) return '';
   const name = escapeHtml(getForwardDisplayName(bot, authorAttrs || attrs));
   const time = formatForwardTime(attrs.time);
-  const timeText = time ? ` <span style="color:#999;font-size:12px;">${time}</span>` : '';
-  // 合并转发使用米白色背景，并显式指定黑色文字，避免深色主题把正文反转为白色
-  return `<div style="margin:8px 0;padding:10px 12px;border:1px solid #e6e8ec;border-radius:8px;background:#fdf6ec;"><div style="font-size:12px;line-height:1.4;margin-bottom:6px;color:#666;"><strong>${name}</strong>${timeText}</div><div style="font-size:14px;line-height:1.6;word-break:break-word;color:#000;">${body}</div></div>`;
+  const timeText = time ? ` <span style="color:GrayText;font-size:12px;">${time}</span>` : '';
+  return `<div style="margin:8px 0;padding:10px 12px;border:1px solid GrayText;border-radius:8px;background:Canvas;color:CanvasText;"><div style="font-size:12px;line-height:1.4;margin-bottom:6px;color:GrayText;"><strong>${name}</strong>${timeText}</div><div style="font-size:14px;line-height:1.6;word-break:break-word;color:CanvasText;">${body}</div></div>`;
 }
 
 async function renderForwardCard(bot: YunhuBot, fragment: Fragment): Promise<string>
@@ -381,7 +380,7 @@ async function renderForwardCard(bot: YunhuBot, fragment: Fragment): Promise<str
 
   if (!cards.length) return '';
 
-  return `<details style="width:100%;box-sizing:border-box;border:1px solid #dfe3e8;border-radius:10px;background:#f8f1e7;overflow:hidden;"><summary style="list-style:none;cursor:pointer;padding:10px 12px;background:#fdf6ec;border-bottom:1px solid #e6e8ec;font-size:14px;font-weight:600;color:#333;">合并聊天记录</summary><div style="padding:8px 10px;">${cards.join('')}</div></details>`;
+  return `<details style="width:100%;box-sizing:border-box;border:1px solid GrayText;border-radius:10px;background:Canvas;color:CanvasText;overflow:hidden;"><summary style="list-style:none;cursor:pointer;padding:10px 12px;background:Canvas;border-bottom:1px solid GrayText;font-size:14px;font-weight:600;color:CanvasText;">合并聊天记录</summary><div style="padding:8px 10px;">${cards.join('')}</div></details>`;
 }
 
 async function renderForwardElement(context: ForwardRenderContext, element: ForwardElement)
@@ -441,7 +440,7 @@ async function renderForwardElement(context: ForwardRenderContext, element: Forw
           const imageStyle = getMixedMediaImageStyle(context.bot);
           const imageName = getForwardMediaText(attrs, '');
           const caption = imageName
-            ? `<div style="display:block;margin-top:4px;color:#475569;font-size:12px;text-align:left;text-decoration:none;">${escapeHtml(imageName)}</div>`
+            ? `<div style="display:block;margin-top:4px;color:GrayText;font-size:12px;text-align:left;text-decoration:none;">${escapeHtml(imageName)}</div>`
             : '';
           if (isHtmlWebProxyMixedMedia(context.bot))
           {
