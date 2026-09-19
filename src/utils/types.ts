@@ -115,9 +115,9 @@ export interface YunhuMessage
 {
   recvId: string;
   recvType: 'user' | 'group';
-  contentType: 'text' | 'image' | 'video' | 'file' | 'markdown' | 'html';
+  contentType: 'text' | 'image' | 'video' | 'file' | 'markdown' | 'html' | 'a2ui';
   content: {
-    text?: string;      // for text/markdown/html
+    text?: string;      // for text/markdown/html/a2ui
     imageKey?: string;  // for image
     fileName?: string;  // for file
     fileKey?: string;   // for file

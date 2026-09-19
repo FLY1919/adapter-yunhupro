@@ -14,6 +14,7 @@ import { Config } from './config';
 
 export * from './config';
 export * from './bot/bot';
+export * from './bot/a2ui';
 
 export const name = 'adapter-yunhupro';
 export const reusable = true;

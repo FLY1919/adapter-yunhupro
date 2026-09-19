@@ -1,6 +1,7 @@
 ﻿import { Context, h, Dict, MessageEncoder, Fragment } from 'koishi';
 import { YunhuBot } from './bot';
 import { Button, SizeLimitError } from '../utils/types';
+import { buildAudioA2uiJsonl, getA2uiElementContent, resolveAudioA2uiUrl } from './a2ui';
 
 function isHtmlMixedMedia(bot: YunhuBot): boolean
 {
@@ -39,91 +40,6 @@ function getFileName(attrs: Dict): string | undefined
     }
   }
   return undefined;
-}
-
-function isPublicHttpMediaUrl(src: string): boolean
-{
-  try
-  {
-    const url = new URL(src);
-    if (url.protocol !== 'http:' && url.protocol !== 'https:')
-    {
-      return false;
-    }
-
-    const host = url.hostname.toLowerCase();
-    if (!host || host === 'localhost' || host === '::1')
-    {
-      return false;
-    }
-
-    if (/^\d{1,3}(?:\.\d{1,3}){3}$/.test(host))
-    {
-      const parts = host.split('.').map(part => Number(part));
-      const [a, b] = parts;
-      if (a === 10) return false;
-      if (a === 127) return false;
-      if (a === 169 && b === 254) return false;
-      if (a === 192 && b === 168) return false;
-      if (a === 172 && b >= 16 && b <= 31) return false;
-    }
-
-    return true;
-  } catch
-  {
-    return false;
-  }
-}
-
-function buildAudioA2uiJsonl(url: string, description: string): string
-{
-  const surfaceId = `audio-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-  const messages = [
-    {
-      version: 'v0.9',
-      createSurface: {
-        surfaceId,
-        catalogId: 'https://a2ui.org/specification/v0_9/basic_catalog.json',
-        sendDataModel: true,
-      },
-    },
-    {
-      version: 'v0.9',
-      updateComponents: {
-        surfaceId,
-        components: [
-          {
-            id: 'root',
-            component: 'Column',
-            children: ['player'],
-          },
-          {
-            id: 'player',
-            component: 'AudioPlayer',
-            url,
-            description,
-          },
-        ],
-      },
-    },
-  ];
-
-  return messages.map(item => `\`\`\`json\n${JSON.stringify(item)}\n\`\`\``).join('\n\n');
-}
-
-async function resolveAudioA2uiUrl(bot: YunhuBot, src: string): Promise<string>
-{
-  if (isPublicHttpMediaUrl(src))
-  {
-    return src;
-  }
-
-  const file = await bot.http.file(src, { timeout: bot.config.uploadTimeout * 1000 });
-  const type = file.type || 'application/octet-stream';
-  const base64 = Buffer.from(file.data).toString('base64');
-  const dataUrl = `data:${type};base64,${base64}`;
-  const uploaded = await bot.internal.uploadFileKey(dataUrl, file.filename);
-  return bot.buildExternalMediaUrl(uploaded.url);
 }
 
 function setMixedTextMode(context: { sendType?: 'text' | 'image' | 'video' | 'file' | 'markdown' | 'html' | 'html-webproxy' | 'a2ui'; }, bot: YunhuBot)
@@ -513,6 +429,7 @@ export async function fragmentToPayload(bot: YunhuBot, fragment: Fragment): Prom
     fileKey: undefined,
     fileName: undefined,
     videoKey: undefined,
+    a2uiMessages: '',
     // editMessage不支持分段发送，所以flush是空操作
     flush: async () => { },
     // render需要递归调用_visit
@@ -527,9 +444,9 @@ export async function fragmentToPayload(bot: YunhuBot, fragment: Fragment): Prom
 
   await context.render(elements);
 
-  const { sendType, text, markdown, html, atPayload, imageKey, fileKey, fileName, videoKey, buttons } = context;
+  const { sendType, text, markdown, html, atPayload, imageKey, fileKey, fileName, videoKey, buttons, a2uiMessages } = context;
 
-  if (!imageKey && !fileKey && !videoKey && !text.trim() && !markdown.trim() && !html.trim() && !buttons.length)
+  if (!imageKey && !fileKey && !videoKey && !text.trim() && !markdown.trim() && !html.trim() && !buttons.length && !a2uiMessages)
   {
     return null;
   }
@@ -546,6 +463,9 @@ export async function fragmentToPayload(bot: YunhuBot, fragment: Fragment): Prom
   } else if (finalContentType === 'html')
   {
     finalContent.text = wrapHtmlMessage(html);
+  } else if (finalContentType === 'a2ui')
+  {
+    finalContent.text = a2uiMessages;
   }
 
   if (imageKey) finalContent.imageKey = imageKey;
@@ -871,7 +791,10 @@ async function _visit(context: any, element: h)
           {
             const audioUrl = await resolveAudioA2uiUrl(context.bot, src);
             const description = String(element.attrs.name || '');
-            context.a2uiMessages = buildAudioA2uiJsonl(audioUrl, description);
+            context.a2uiMessages = buildAudioA2uiJsonl({
+              url: audioUrl,
+              description,
+            });
             await context.flush();
           } catch (error)
           {
@@ -1063,12 +986,31 @@ async function _visit(context: any, element: h)
         await context.flush();
         break;
 
+      case 'a2ui':
+
+      case 'yunhu:a2ui':
+        await context.flush();
+        context.sendType = 'a2ui';
+        context.a2uiMessages = getA2uiElementContent(element);
+        await context.flush();
+        break;
+
       case 'html':
 
       case 'yunhu:html':
         await context.flush();
         context.sendType = 'html';
-        await context.render(children);
+        // HTML 元素的纯文本子节点应原样发送，不能再做 HTML 转义
+        if (typeof attrs.content === 'string')
+        {
+          context.html += attrs.content;
+        } else if (children.length > 0 && children.every(child => child.type === 'text'))
+        {
+          context.html += children.map(child => String(child.attrs.content || '')).join('');
+        } else
+        {
+          await context.render(children);
+        }
         await context.flush();
         break;
 
