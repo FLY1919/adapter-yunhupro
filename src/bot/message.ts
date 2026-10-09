@@ -2,6 +2,7 @@
 import { YunhuBot } from './bot';
 import { Button, SizeLimitError } from '../utils/types';
 import { buildAudioA2uiJsonl, getA2uiElementContent, resolveAudioA2uiUrl } from './a2ui';
+import { buildForwardAuthorLink, resolveForwardAuthor } from './forward-author';
 
 function isHtmlMixedMedia(bot: YunhuBot): boolean
 {
@@ -142,10 +143,71 @@ function extractForwardAuthor(node: ForwardElement): Dict | null
   return node.attrs ?? {};
 }
 
-function getForwardDisplayName(bot: YunhuBot, attrs: Dict | null): string
+// 从转发消息属性里取显式名称，取不到返回空串
+function getForwardExplicitName(attrs: Dict | null): string
 {
-  const name = String(attrs?.name || attrs?.nickname || attrs?.username || attrs?.userName || '');
-  return name || getBotForwardName(bot);
+  return String(attrs?.name || attrs?.nickname || attrs?.username || attrs?.userName || '');
+}
+
+// 从转发消息属性里取发送者 ID（优先 id，其次 userId/uin）
+function getForwardAuthorId(attrs: Dict | null): string
+{
+  const raw = attrs?.id ?? attrs?.userId ?? attrs?.uin;
+  return raw == null ? '' : String(raw);
+}
+
+// 构造头部作者名：知道 ID 时把名称渲染为可点击的个人卡片超链接
+async function renderForwardAuthorName(bot: YunhuBot, attrs: Dict | null): Promise<string>
+{
+  const explicitName = getForwardExplicitName(attrs);
+  const explicitId = getForwardAuthorId(attrs);
+  // 优先用条目自带的作者 ID；条目完全没有作者信息时，按机器人本人处理，
+  // 这样展示的名称和超链接都指向机器人自己
+  const authorId = explicitId || (explicitName ? '' : bot.selfId);
+  // 解析失败时的兜底显示：显式名称 > 显式 ID > 机器人名
+  const fallbackName = explicitName || explicitId || getBotForwardName(bot);
+
+  // 没有 ID 时退化为普通加粗名称
+  if (!authorId)
+  {
+    return `<strong>${escapeHtml(fallbackName)}</strong>`;
+  }
+
+  // 通过 getUser 判断身份，决定链接 type 是 user 还是 bot
+  const resolved = await resolveForwardAuthor(bot, authorId);
+  if (!resolved)
+  {
+    return `<strong>${escapeHtml(fallbackName)}</strong>`;
+  }
+
+  const name = explicitName || resolved.name || fallbackName;
+  const href = buildForwardAuthorLink(resolved.id, resolved.isBot);
+  return `<strong>${openHtmlLink(href)}${escapeHtml(name)}</a></strong>`;
+}
+
+// 预扫描转发内容里的作者 ID 并并行解析，避免逐条消息串行请求
+async function prewarmForwardAuthors(bot: YunhuBot, fragment: Fragment): Promise<void>
+{
+  const ids = new Set<string>();
+  // 缺省作者是机器人自己，一并预解析
+  if (bot.selfId) ids.add(bot.selfId);
+
+  const visit = (children: Fragment) =>
+  {
+    for (const node of h.normalize(children))
+    {
+      if (typeof node === 'string') continue;
+      if (node.type === 'message' || node.type === 'author')
+      {
+        const id = getForwardAuthorId(node.attrs ?? {});
+        if (id) ids.add(id);
+      }
+      if (node.children?.length) visit(node.children);
+    }
+  };
+
+  visit(fragment);
+  await Promise.all([...ids].map(id => resolveForwardAuthor(bot, id)));
 }
 
 function formatForwardTime(time?: string | number): string
@@ -249,14 +311,17 @@ async function renderForwardMessage(bot: YunhuBot, attrs: Dict, children: Fragme
 
   const body = await renderForwardContent(bot, content);
   if (!body) return '';
-  const name = escapeHtml(getForwardDisplayName(bot, authorAttrs || attrs));
+  const name = await renderForwardAuthorName(bot, authorAttrs || attrs);
   const time = formatForwardTime(attrs.time);
   const timeText = time ? ` <span style="color:GrayText;font-size:12px;">${time}</span>` : '';
-  return `<div style="margin:8px 0;padding:10px 12px;border:1px solid GrayText;border-radius:8px;background:Canvas;color:CanvasText;"><div style="font-size:12px;line-height:1.4;margin-bottom:6px;color:GrayText;"><strong>${name}</strong>${timeText}</div><div style="font-size:14px;line-height:1.6;word-break:break-word;color:CanvasText;">${body}</div></div>`;
+  return `<div style="margin:8px 0;padding:10px 12px;border:1px solid GrayText;border-radius:8px;background:Canvas;color:CanvasText;"><div style="font-size:12px;line-height:1.4;margin-bottom:6px;color:GrayText;">${name}${timeText}</div><div style="font-size:14px;line-height:1.6;word-break:break-word;color:CanvasText;">${body}</div></div>`;
 }
 
 async function renderForwardCard(bot: YunhuBot, fragment: Fragment): Promise<string>
 {
+  // 先并行解析作者信息，后续渲染直接命中缓存
+  await prewarmForwardAuthors(bot, fragment);
+
   const nodes = h.normalize(fragment);
   const cards: string[] = [];
 

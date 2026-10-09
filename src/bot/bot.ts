@@ -7,6 +7,7 @@ import { fragmentToPayload } from './message';
 import { Internal } from './internal';
 import { BotHttp } from './http';
 import { getMediaProxyUrl } from '../utils/media-proxy';
+import { disposeForwardAuthorCache } from './forward-author';
 
 const logger = new Logger('adapter-yunhupro');
 
@@ -33,6 +34,7 @@ export class YunhuBot extends Bot<Context, Config>
     this.Encoder = new YunhuMessageEncoder(this, config.token);
   }
 
+  // 兼容传入用户ID和机器人ID，返回对象带有 isBot 字段
   async getUser(userId: string)
   {
     return this.internal.getUser(userId);
@@ -357,6 +359,8 @@ export class YunhuBot extends Bot<Context, Config>
   // 停止机器人
   async stop()
   {
+    // 释放合并转发作者缓存
+    disposeForwardAuthorCache(this);
     await super.stop();
   }
 }

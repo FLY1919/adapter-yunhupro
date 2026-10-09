@@ -212,13 +212,16 @@ export class Internal
     return this.bot.http.getWeb(`/user/homepage?userId=${userId}`);
   }
 
+  // 兼容传入用户ID和机器人ID：先按用户查询，查不到再按机器人查询，
+  // 返回对象额外带有 isBot 字段用于区分身份
   async getUser(userId: string): Promise<Universal.User>
   {
+    if (!userId) return;
+
+    // 先尝试按用户查询
     try
     {
-      if (!userId) return;
       const userPayload = await this._getUser(userId);
-
       if (userPayload.data?.user?.userId)
       {
         return {
@@ -228,31 +231,31 @@ export class Internal
           isBot: false, // 这是一个普通用户
         };
       }
-
-      try
-      {
-        const botPayload = await this.getBotInfo(userId);
-        if (botPayload.data?.bot?.botId)
-        {
-          return {
-            id: botPayload.data.bot.botId,
-            name: botPayload.data.bot.nickname,
-            avatar: getMediaProxyUrl(botPayload.data.bot.avatarUrl, 'image', this.bot),
-            isBot: true, // 这是一个机器人
-          };
-        }
-      } catch (botError)
-      {
-        this.bot.loggerError(`作为机器人获取信息失败 (ID: ${userId})，这可能是个无效ID`, botError);
-      }
-
-      throw new Error(`无法获取ID为 ${userId} 的用户或机器人信息`);
-
-    } catch (error)
+    } catch (userError)
     {
-      this.bot.loggerError(`获取用户信息失败 (ID: ${userId}):`, error);
-      throw error;
+      // 用户接口不可用时退回机器人查询，不直接抛出
+      this.bot.logInfo(`按用户查询失败 (ID: ${userId})，尝试按机器人查询:`, userError);
     }
+
+    // 再尝试按机器人查询
+    try
+    {
+      const botPayload = await this.getBotInfo(userId);
+      if (botPayload.data?.bot?.botId)
+      {
+        return {
+          id: botPayload.data.bot.botId,
+          name: botPayload.data.bot.nickname,
+          avatar: getMediaProxyUrl(botPayload.data.bot.avatarUrl, 'image', this.bot),
+          isBot: true, // 这是一个机器人
+        };
+      }
+    } catch (botError)
+    {
+      this.bot.logInfo(`按机器人查询失败 (ID: ${userId})，这可能是个无效ID`, botError);
+    }
+
+    throw new Error(`无法获取ID为 ${userId} 的用户或机器人信息`);
   }
 
   async getGuildMember(guildId: string, userId: string): Promise<Universal.GuildMember>
